@@ -1,4 +1,5 @@
 from datetime import datetime
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -6,10 +7,24 @@ from fastapi.templating import Jinja2Templates
 
 from app.dependencies import require_role
 from app.schemas.user import UserOut
-from app.services.admin_service import list_activities_filtered, list_users, update_user_role
+from app.services.admin_service import (
+    delete_user,
+    list_activities_filtered,
+    list_users,
+    update_user_role,
+    verify_user_email,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 templates = Jinja2Templates(directory="app/templates")
+
+
+def _flash_redirect(msg: str, ok: bool) -> RedirectResponse:
+    flash_type = "success" if ok else "danger"
+    return RedirectResponse(
+        f"/admin/users?msg={quote(msg)}&type={flash_type}",
+        status_code=303,
+    )
 
 
 @router.get("/users", response_class=HTMLResponse)
@@ -18,10 +33,18 @@ async def admin_users(
     user: UserOut = Depends(require_role("admin")),
 ):
     users = list_users()
+    flash_type = request.query_params.get("type") or "info"
+    if flash_type not in ("success", "danger", "info", "warning"):
+        flash_type = "info"
     return templates.TemplateResponse(
         request,
         "admin/users.html",
-        {"user": user, "users": users, "flash": request.query_params.get("msg")},
+        {
+            "user": user,
+            "users": users,
+            "flash": request.query_params.get("msg"),
+            "flash_type": flash_type,
+        },
     )
 
 
@@ -32,7 +55,25 @@ async def admin_update_role(
     user: UserOut = Depends(require_role("admin")),
 ):
     ok, msg = update_user_role(target_user_id, role, user.id)
-    return RedirectResponse(f"/admin/users?msg={msg}", status_code=303)
+    return _flash_redirect(msg, ok)
+
+
+@router.post("/users/{target_user_id}/verify-email")
+async def admin_verify_email(
+    target_user_id: str,
+    user: UserOut = Depends(require_role("admin")),
+):
+    ok, msg = verify_user_email(target_user_id)
+    return _flash_redirect(msg, ok)
+
+
+@router.post("/users/{target_user_id}/delete")
+async def admin_delete_user(
+    target_user_id: str,
+    user: UserOut = Depends(require_role("admin")),
+):
+    ok, msg = delete_user(target_user_id, user.id)
+    return _flash_redirect(msg, ok)
 
 
 @router.get("/activities", response_class=HTMLResponse)

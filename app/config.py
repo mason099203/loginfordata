@@ -47,5 +47,15 @@ def utc_now() -> datetime:
 SESSION_COOKIE_NAME = "session"
 SESSION_MAX_AGE = 60 * 60 * 24 * 7  # 7 days
 
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").replace(" ", "")
+SMTP_FROM = os.getenv("SMTP_FROM", "") or (
+    f"活動管理系統 <{SMTP_USER}>" if SMTP_USER else "活動管理系統 <noreply@example.com>"
+)
+SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() in ("1", "true", "yes")
+VERIFICATION_CODE_EXPIRE_MINUTES = int(os.getenv("VERIFICATION_CODE_EXPIRE_MINUTES", "15"))
+
 ROLES = ("user", "advanced_user", "admin")
 ACTIVITY_STATUSES = ("draft", "active", "closed")

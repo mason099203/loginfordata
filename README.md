@@ -4,9 +4,9 @@ FastAPI + Jinja2 + MongoDB Atlas 的活動管理網站，支援三種角色、�
 
 ## 功能
 
-- **一般使用者**：註冊登入、瀏覽進行中活動、選位置報名、聊天
+- **一般使用者**：註冊登入（需 Email 驗證碼）、瀏覽進行中活動、選位置報名、聊天
 - **高級使用者**：建立/編輯活動、設定位置人數、上傳圖片、啟動/關閉活動
-- **管理員**：調整使用者權限、篩選歷史活動
+- **管理員**：調整使用者權限、設為管理員、刪除使用者、代為確認 Email 驗證、篩選歷史活動
 
 ## 環境設定
 
@@ -17,7 +17,7 @@ python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-2. 複製 `.env.example` 為 `.env` 並填入 MongoDB 連線資訊
+2. 複製 `.env.example` 為 `.env` 並填入 MongoDB 連線資訊與 SMTP 設定（註冊驗證碼寄信）
 3. 安裝依賴：
 
 ```powershell
@@ -44,7 +44,20 @@ python -m venv .venv
 | 高級使用者 | `advanced_user` |
 | 管理員 | `admin` |
 
-管理員可在 `/admin/users` 調整其他使用者角色。
+管理員可在 `/admin/users` 調整其他使用者角色、設為管理員、刪除使用者，或代為確認尚未驗證 Email 的帳號。操作前會跳出確認提示，完成後頁面頂部會顯示成功或失敗訊息。
+
+## Email 驗證
+
+註冊後系統會寄出 6 位數驗證碼，使用者須在 `/register/verify` 輸入後才能登入。若未設定 `SMTP_USER` / `SMTP_PASSWORD`，驗證碼會寫入伺服器 log（僅供本機開發）。
+
+| 環境變數 | 說明 |
+|---------|------|
+| `SMTP_HOST` | SMTP 主機（Gmail：`smtp.gmail.com`） |
+| `SMTP_PORT` | 埠號（Gmail：`587`，使用 STARTTLS） |
+| `SMTP_USER` | Gmail 完整信箱 |
+| `SMTP_PASSWORD` | Gmail [應用程式密碼](https://myaccount.google.com/apppasswords)（16 碼，可含空格） |
+| `SMTP_FROM` | 寄件者顯示名稱（建議與 `SMTP_USER` 相同信箱） |
+| `VERIFICATION_CODE_EXPIRE_MINUTES` | 驗證碼有效分鐘數（預設 15） |
 
 ## 部署到 Render
 

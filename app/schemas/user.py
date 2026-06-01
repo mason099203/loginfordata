@@ -14,6 +14,7 @@ class UserOut(BaseModel):
     role: Role
     created_at: datetime
     is_active: bool
+    email_verified: bool
 
 
 class RegisterForm(BaseModel):
