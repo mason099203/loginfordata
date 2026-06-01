@@ -41,8 +41,11 @@ def list_activities_filtered(
     date_to: datetime | None = None,
 ) -> list[ActivityOut]:
     query: dict[str, Any] = {}
-    if status and status in ("draft", "active", "closed"):
+    if status == "deleted":
+        query["deleted_at"] = {"$ne": None}
+    elif status and status in ("draft", "active", "closed"):
         query["status"] = status
+        query["deleted_at"] = None
     if keyword:
         query["$or"] = [
             {"title": {"$regex": keyword, "$options": "i"}},

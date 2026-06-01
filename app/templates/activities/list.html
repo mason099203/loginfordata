@@ -13,9 +13,31 @@
       <div class="card-body d-flex flex-column">
         <h2 class="h5 card-title">{{ activity.title }}</h2>
         <p class="card-text text-muted small">{{ activity.description[:120] }}{% if activity.description|length > 120 %}...{% endif %}</p>
-        <p class="small mb-2">
-          <span class="badge bg-success">進行中</span><br>
-          {{ activity.start_time.strftime('%Y-%m-%d %H:%M') }} ~ {{ activity.end_time.strftime('%Y-%m-%d %H:%M') }}
+        <div class="small mb-2">
+          <span class="badge bg-success">進行中</span>
+        </div>
+        <div class="row g-1 small mb-2 text-center">
+          <div class="col-4">
+            <div class="border rounded py-1">
+              <div class="text-muted" style="font-size:0.75rem">剩餘</div>
+              <div class="fw-semibold text-success">{{ activity.remaining_text }}</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="border rounded py-1">
+              <div class="text-muted" style="font-size:0.75rem">報名</div>
+              <div class="fw-semibold">{{ activity.total_participants }}</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="border rounded py-1">
+              <div class="text-muted" style="font-size:0.75rem">名額</div>
+              <div class="fw-semibold">{{ activity.total_participants }}/{{ activity.total_capacity }}</div>
+            </div>
+          </div>
+        </div>
+        <p class="small text-muted mb-2">
+          {{ activity.start_time.strftime('%m/%d %H:%M') }} ~ {{ activity.end_time.strftime('%m/%d %H:%M') }}
         </p>
         <a href="/activities/{{ activity.id }}" class="btn btn-outline-primary mt-auto">查看詳情</a>
       </div>

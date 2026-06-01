@@ -1,9 +1,12 @@
 {% extends "base.html" %}
 {% block title %}{{ activity.title }}{% endblock %}
 {% block content %}
+{% if activity.deleted_at %}
+<div class="alert alert-warning">此活動已由主辦方刪除（{{ activity.deleted_at.strftime('%Y-%m-%d %H:%M') }}），僅管理員可檢視。</div>
+{% endif %}
 <div class="row g-4">
-  <div class="col-lg-8">
-    <div class="card shadow-sm">
+  <div class="{% if can_chat %}col-lg-8{% else %}col-12{% endif %}">
+    <div class="card shadow-sm mb-4">
       {% if activity.image_url %}
       <img src="{{ activity.image_url }}" class="card-img-top" alt="{{ activity.title }}" style="max-height:320px;object-fit:cover;">
       {% endif %}
@@ -17,45 +20,145 @@
           <span class="badge bg-secondary">{{ activity.status }}</span>
           {% endif %}
         </p>
-        <p class="small">時間：{{ activity.start_time.strftime('%Y-%m-%d %H:%M') }} ~ {{ activity.end_time.strftime('%Y-%m-%d %H:%M') }}</p>
-        {% if can_chat %}
-        <a href="/chat/activity/{{ activity.id }}" class="btn btn-primary">進入聊天室</a>
+        {% if activity.is_live %}
+        <div class="row g-2 mb-3">
+          <div class="col-sm-4">
+            <div class="border rounded p-2 text-center">
+              <div class="small text-muted">剩餘時間</div>
+              <div class="fw-semibold text-success" id="remaining-time" data-seconds="{{ activity.remaining_seconds }}">{{ activity.remaining_text }}</div>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="border rounded p-2 text-center">
+              <div class="small text-muted">已報名</div>
+              <div class="fw-semibold">{{ activity.total_participants }} 人</div>
+            </div>
+          </div>
+          <div class="col-sm-4">
+            <div class="border rounded p-2 text-center">
+              <div class="small text-muted">名額</div>
+              <div class="fw-semibold">{{ activity.total_participants }} / {{ activity.total_capacity }}</div>
+            </div>
+          </div>
+        </div>
         {% endif %}
+        <p class="small text-muted mb-0">時間：{{ activity.start_time.strftime('%Y-%m-%d %H:%M') }} ~ {{ activity.end_time.strftime('%Y-%m-%d %H:%M') }}</p>
       </div>
     </div>
-  </div>
-  <div class="col-lg-4">
+
     <div class="card shadow-sm">
       <div class="card-header">報名位置</div>
-      <div class="card-body">
+      <div class="card-body p-0">
         {% if activity.positions %}
-        {% for pos in activity.positions %}
-        <div class="border rounded p-3 mb-3">
-          <h2 class="h6">{{ pos.name }}</h2>
-          <p class="small text-muted mb-2">{{ pos.description }}</p>
-          <p class="small">人數：{{ pos.participant_count }} / {{ pos.capacity }}</p>
-          {% if activity.is_live %}
-            {% if pos.is_joined %}
-            <form method="post" action="/activities/{{ activity.id }}/leave/{{ pos.id }}">
-              <button class="btn btn-sm btn-outline-danger">取消報名</button>
-            </form>
-            {% elif pos.participant_count < pos.capacity %}
-            <form method="post" action="/activities/{{ activity.id }}/join/{{ pos.id }}">
-              <button class="btn btn-sm btn-success">報名</button>
-            </form>
-            {% else %}
-            <span class="badge bg-warning text-dark">已額滿</span>
-            {% endif %}
-          {% else %}
-          <span class="text-muted small">未進行中</span>
-          {% endif %}
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>位置</th>
+                <th>描述</th>
+                <th class="text-center">人數</th>
+                <th>報名者</th>
+                <th class="text-end">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for pos in activity.positions %}
+              <tr>
+                <td class="fw-semibold">{{ pos.name }}</td>
+                <td class="text-muted small">{{ pos.description or '—' }}</td>
+                <td class="text-center text-nowrap">{{ pos.participant_count }} / {{ pos.capacity }}</td>
+                <td>
+                  {% if pos.participants %}
+                  <div class="participant-names">
+                    {% for p in pos.participants %}
+                    <span class="participant-badge{% if p.user_id == user.id %} participant-badge-self{% endif %}">{{ p.display_name }}</span>
+                    {% endfor %}
+                  </div>
+                  {% else %}
+                  <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td class="text-end text-nowrap">
+                  {% if is_blacklisted %}
+                  <span class="badge bg-danger">無法報名</span>
+                  {% elif activity.is_live %}
+                    {% if pos.is_joined %}
+                    <form method="post" action="/activities/{{ activity.id }}/leave/{{ pos.id }}" class="d-inline">
+                      <button class="btn btn-sm btn-outline-danger">取消報名</button>
+                    </form>
+                    {% elif pos.participant_count < pos.capacity %}
+                    <form method="post" action="/activities/{{ activity.id }}/join/{{ pos.id }}" class="d-inline">
+                      <button class="btn btn-sm btn-success">報名</button>
+                    </form>
+                    {% else %}
+                    <span class="badge bg-warning text-dark">已額滿</span>
+                    {% endif %}
+                  {% else %}
+                  <span class="text-muted small">未進行中</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-        {% endfor %}
         {% else %}
-        <p class="text-muted mb-0">尚未設定報名位置。</p>
+        <div class="p-3 text-muted">尚未設定報名位置。</div>
         {% endif %}
       </div>
     </div>
+
+    {% include "activities/_registration_logs.html" %}
   </div>
+
+  {% if can_chat %}
+  <div class="col-lg-4">
+    <div class="card shadow-sm chat-sidebar sticky-top">
+      <div class="card-header py-2">
+        <strong>活動聊天室</strong>
+      </div>
+      <div class="card-body p-2 d-flex flex-column">
+        <div id="chat-root" data-room-type="activity" data-room-id="{{ activity.id }}"></div>
+        <div id="chat-messages" class="chat-box chat-box-sidebar flex-grow-1 mb-2">
+          {% for msg in chat_messages %}
+          <div class="chat-message">
+            <div class="meta"><strong>{{ msg.sender_name }}</strong> · {{ msg.created_at.strftime('%m/%d %H:%M') }}</div>
+            <div>{{ msg.content }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        <form id="chat-form" class="input-group input-group-sm">
+          <input type="text" id="chat-input" class="form-control" placeholder="輸入訊息..." maxlength="2000" autocomplete="off">
+          <button class="btn btn-primary" type="submit">送出</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+{% if activity.is_live and activity.remaining_seconds > 0 %}
+<script>
+(function () {
+  const el = document.getElementById('remaining-time');
+  if (!el) return;
+  let seconds = parseInt(el.dataset.seconds, 10);
+  function format(sec) {
+    if (sec <= 0) return '已結束';
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    return h > 0 ? `${h} 小時 ${m} 分` : `${m} 分鐘`;
+  }
+  setInterval(() => {
+    seconds = Math.max(0, seconds - 1);
+    el.textContent = format(seconds);
+  }, 1000);
+})();
+</script>
+{% endif %}
+{% if can_chat %}
+<script src="/static/js/chat.js"></script>
+{% endif %}
 {% endblock %}

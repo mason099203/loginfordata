@@ -40,6 +40,14 @@ def get_user_by_email(email: str) -> dict | None:
     return get_db().users.find_one({"email": email.lower().strip()})
 
 
+def get_users_by_ids(user_ids: list) -> dict[str, str]:
+    oids = [ObjectId(uid) for uid in user_ids if ObjectId.is_valid(str(uid))]
+    if not oids:
+        return {}
+    cursor = get_db().users.find({"_id": {"$in": oids}}, {"display_name": 1})
+    return {str(doc["_id"]): doc["display_name"] for doc in cursor}
+
+
 def create_user(email: str, password: str, display_name: str, role: str = "user") -> UserOut:
     db = get_db()
     normalized_email = email.lower().strip()

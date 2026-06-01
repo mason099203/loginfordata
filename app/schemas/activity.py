@@ -6,6 +6,13 @@ from pydantic import BaseModel, Field
 
 ActivityStatus = Literal["draft", "active", "closed"]
 
+ACTIVATE_DURATION_OPTIONS = (1, 2, 3, 6, 12, 24)
+
+
+class ParticipantOut(BaseModel):
+    user_id: str
+    display_name: str
+
 
 class PositionOut(BaseModel):
     id: str
@@ -14,6 +21,7 @@ class PositionOut(BaseModel):
     capacity: int
     participant_count: int
     is_joined: bool = False
+    participants: list[ParticipantOut] = Field(default_factory=list)
 
 
 class ActivityOut(BaseModel):
@@ -29,6 +37,11 @@ class ActivityOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     is_live: bool = False
+    total_capacity: int = 0
+    total_participants: int = 0
+    remaining_text: str = ""
+    remaining_seconds: int = 0
+    deleted_at: datetime | None = None
 
 
 class PositionInput(BaseModel):

@@ -21,11 +21,8 @@
 </div>
 {% endif %}
 
-<form method="post" enctype="multipart/form-data"
+<form method="post"
   action="{% if mode == 'create' %}/activities/create{% else %}/activities/{{ activity.id }}/edit{% endif %}">
-  {% if mode == 'create' and template_data and template_data.image_url %}
-  <input type="hidden" name="template_image_url" value="{{ template_data.image_url }}">
-  {% endif %}
   <div class="row g-3">
     <div class="col-md-8">
       <label class="form-label">活動標題</label>
@@ -36,28 +33,30 @@
       <label class="form-label">活動描述</label>
       <textarea name="description" class="form-control" rows="4">{% if activity %}{{ activity.description }}{% elif template_data %}{{ template_data.description }}{% elif form %}{{ form.description }}{% endif %}</textarea>
     </div>
-    <div class="col-md-6">
-      <label class="form-label">開始時間</label>
-      <input type="datetime-local" name="start_time" class="form-control" required
-        value="{% if activity %}{{ activity.start_time.strftime('%Y-%m-%dT%H:%M') }}{% elif form %}{{ form.start_time }}{% endif %}">
-    </div>
-    <div class="col-md-6">
-      <label class="form-label">結束時間</label>
-      <input type="datetime-local" name="end_time" class="form-control" required
-        value="{% if activity %}{{ activity.end_time.strftime('%Y-%m-%dT%H:%M') }}{% elif form %}{{ form.end_time }}{% endif %}">
-    </div>
-    {% if mode == 'edit' %}
     <div class="col-12">
-      <label class="form-label">活動圖片</label>
-      {% if activity.image_url %}
-      <div class="mb-2"><img src="{{ activity.image_url }}" alt="活動圖片" class="img-thumbnail" style="max-height:160px;"></div>
+      <label class="form-label">活動圖片網址（選填）</label>
+      <input type="url" name="image_url" class="form-control" placeholder="https://example.com/image.jpg"
+        value="{% if activity and activity.image_url %}{{ activity.image_url }}{% elif template_data and template_data.image_url %}{{ template_data.image_url }}{% elif form and form.image_url %}{{ form.image_url }}{% endif %}">
+      <div class="form-text">請貼上網路上的圖片連結（http:// 或 https://）</div>
+      {% set preview_url = activity.image_url if activity and activity.image_url else (template_data.image_url if template_data and template_data.image_url else (form.image_url if form and form.image_url else '')) %}
+      {% if preview_url %}
+      <div class="mt-2"><img src="{{ preview_url }}" alt="預覽" class="img-thumbnail" style="max-height:160px;" onerror="this.style.display='none'"></div>
       {% endif %}
-      <input type="file" name="image" class="form-control" accept="image/*">
     </div>
-    {% elif template_data and template_data.image_url %}
+    {% if mode == 'edit' and activity.status != 'draft' %}
     <div class="col-12">
-      <label class="form-label">範本圖片（建立後沿用）</label>
-      <div><img src="{{ template_data.image_url }}" alt="範本圖片" class="img-thumbnail" style="max-height:160px;"></div>
+      <div class="alert alert-light border mb-0">
+        <strong>活動時間：</strong>
+        {{ activity.start_time.strftime('%Y-%m-%d %H:%M') }} ~ {{ activity.end_time.strftime('%Y-%m-%d %H:%M') }}
+        {% if activity.is_live %}
+        · 剩餘 <span class="text-success">{{ activity.remaining_text }}</span>
+        · 報名 {{ activity.total_participants }} / {{ activity.total_capacity }} 人
+        {% endif %}
+      </div>
+    </div>
+    {% elif mode == 'edit' %}
+    <div class="col-12">
+      <p class="text-muted small mb-0">草稿狀態：啟動活動時可設定開始時間（預設為現在）與時長。</p>
     </div>
     {% endif %}
   </div>
@@ -122,30 +121,27 @@
 {% if mode == 'edit' %}
 <div class="card mt-4">
   <div class="card-body">
-    <h2 class="h6">儲存為範本</h2>
-    <p class="small text-muted mb-3">將目前活動的標題、描述、圖片與報名位置存成範本，方便下次快速建立。<br>請先按「儲存」更新活動，再儲存範本。</p>
-    <form method="post" action="/activities/{{ activity.id }}/save-template" class="row g-2 align-items-end">
-      <div class="col-md-6">
-        <label class="form-label">範本名稱</label>
-        <input type="text" name="template_name" class="form-control" placeholder="例如：週末志工活動" required maxlength="100">
-      </div>
-      <div class="col-md-3">
-        <button type="submit" class="btn btn-outline-primary w-100">儲存範本</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="card mt-4">
-  <div class="card-body">
     <h2 class="h6">活動狀態</h2>
     <p class="small text-muted mb-3">目前：
       {% if activity.status == 'active' %}進行中{% elif activity.status == 'draft' %}草稿{% else %}已關閉{% endif %}
     </p>
-    <div class="d-flex gap-2 flex-wrap">
+    <div class="d-flex gap-2 flex-wrap align-items-end">
       {% if activity.status != 'active' %}
-      <form method="post" action="/activities/{{ activity.id }}/status">
+      <form method="post" action="/activities/{{ activity.id }}/status" class="d-flex gap-2 align-items-end flex-wrap">
         <input type="hidden" name="status" value="active">
+        <div>
+          <label class="form-label small">開始時間</label>
+          <input type="datetime-local" name="start_time" class="form-control form-control-sm"
+            value="{{ default_start_time }}">
+        </div>
+        <div>
+          <label class="form-label small">時長</label>
+          <select name="duration_hours" class="form-select form-select-sm">
+            {% for hours in duration_options %}
+            <option value="{{ hours }}" {% if hours == 3 %}selected{% endif %}>{{ hours }} 小時</option>
+            {% endfor %}
+          </select>
+        </div>
         <button type="submit" class="btn btn-success btn-sm">啟動活動</button>
       </form>
       {% endif %}
@@ -164,6 +160,61 @@
     </div>
   </div>
 </div>
+
+<div class="card mt-4 border-danger">
+  <div class="card-body">
+    <h2 class="h6 text-danger">刪除活動</h2>
+    <p class="small text-muted mb-3">刪除後將從「我的活動」隱藏，管理員仍可在後台查閱紀錄，此操作無法復原。</p>
+    <form method="post" action="/activities/{{ activity.id }}/delete"
+      onsubmit="return confirm('確定要刪除此活動？');">
+      <button type="submit" class="btn btn-outline-danger btn-sm">刪除活動</button>
+    </form>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-body">
+    <h2 class="h6">儲存為範本</h2>
+    <p class="small text-muted mb-3">將目前活動的標題、描述、圖片與報名位置存成範本，方便下次快速建立。<br>請先按「儲存」更新活動，再儲存範本。</p>
+    <form method="post" action="/activities/{{ activity.id }}/save-template" class="row g-2 align-items-end">
+      <div class="col-md-6">
+        <label class="form-label">範本名稱</label>
+        <input type="text" name="template_name" class="form-control" placeholder="例如：週末志工活動" required maxlength="100">
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-outline-primary w-100">儲存範本</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if activity.total_participants > 0 %}
+<div class="card mt-4">
+  <div class="card-header">報名名單（共 {{ activity.total_participants }} / {{ activity.total_capacity }} 人）</div>
+  <div class="card-body">
+    {% for pos in activity.positions %}
+    {% if pos.participants %}
+    <div class="mb-3">
+      <h3 class="h6">{{ pos.name }}（{{ pos.participant_count }}/{{ pos.capacity }}）</h3>
+      <ul class="list-group list-group-flush">
+        {% for p in pos.participants %}
+        <li class="list-group-item px-0">
+          <span class="participant-badge{% if p.user_id == user.id %} participant-badge-self{% endif %}">{{ p.display_name }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% else %}
+<div class="card mt-4">
+  <div class="card-body text-muted small">尚無人報名。</div>
+</div>
+{% endif %}
+
+{% include "activities/_registration_logs.html" %}
 {% endif %}
 {% endblock %}
 

@@ -8,6 +8,9 @@
     <a href="/activities/create" class="btn btn-primary">建立活動</a>
   </div>
 </div>
+{% if flash %}
+<div class="alert alert-info">{{ flash }}</div>
+{% endif %}
 {% if activities %}
 <div class="table-responsive">
   <table class="table table-hover align-middle">
@@ -17,7 +20,7 @@
         <th>狀態</th>
         <th>開始</th>
         <th>結束</th>
-        <th></th>
+        <th style="min-width: 420px;">操作</th>
       </tr>
     </thead>
     <tbody>
@@ -31,7 +34,34 @@
         </td>
         <td>{{ activity.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
         <td>{{ activity.end_time.strftime('%Y-%m-%d %H:%M') }}</td>
-        <td><a href="/activities/{{ activity.id }}/edit" class="btn btn-sm btn-outline-primary">編輯</a></td>
+        <td>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <a href="/activities/{{ activity.id }}/edit" class="btn btn-sm btn-outline-primary">編輯</a>
+            <form method="post" action="/activities/{{ activity.id }}/status" class="d-flex flex-wrap gap-1 align-items-center">
+              <input type="hidden" name="redirect_to" value="/my/activities">
+              <select name="status" class="form-select form-select-sm" style="width: auto;">
+                <option value="draft" {% if activity.status == 'draft' %}selected{% endif %}>草稿</option>
+                <option value="active" {% if activity.status == 'active' %}selected{% endif %}>進行中</option>
+                <option value="closed" {% if activity.status == 'closed' %}selected{% endif %}>已關閉</option>
+              </select>
+              <input type="datetime-local" name="start_time"
+                class="form-control form-control-sm start-time-select" style="width: auto;"
+                value="{{ default_start_time }}"
+                {% if activity.status != 'active' %}hidden{% endif %}>
+              <select name="duration_hours" class="form-select form-select-sm duration-select" style="width: auto;"
+                {% if activity.status != 'active' %}hidden{% endif %}>
+                {% for hours in duration_options %}
+                <option value="{{ hours }}" {% if hours == 3 %}selected{% endif %}>{{ hours }} 小時</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-sm btn-outline-secondary">更新狀態</button>
+            </form>
+            <form method="post" action="/activities/{{ activity.id }}/delete" class="d-inline"
+              onsubmit="return confirm('確定要刪除此活動？刪除後將從列表隱藏，管理員仍可查閱紀錄。');">
+              <button type="submit" class="btn btn-sm btn-outline-danger">刪除</button>
+            </form>
+          </div>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
@@ -40,4 +70,38 @@
 {% else %}
 <div class="alert alert-secondary">您尚未建立任何活動。</div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function formatLocalNow() {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  return now.toISOString().slice(0, 16);
+}
+
+document.querySelectorAll('form[action*="/status"]').forEach((form) => {
+  const statusSelect = form.querySelector('select[name="status"]');
+  const durationSelect = form.querySelector('.duration-select');
+  const startInput = form.querySelector('.start-time-select');
+  if (!statusSelect) return;
+  const sync = () => {
+    const isActive = statusSelect.value === 'active';
+    if (durationSelect) durationSelect.hidden = !isActive;
+    if (startInput) {
+      startInput.hidden = !isActive;
+      if (isActive && !startInput.value) {
+        startInput.value = formatLocalNow();
+      }
+    }
+  };
+  statusSelect.addEventListener('change', () => {
+    if (statusSelect.value === 'active' && startInput) {
+      startInput.value = formatLocalNow();
+    }
+    sync();
+  });
+  sync();
+});
+</script>
 {% endblock %}

@@ -11,6 +11,7 @@
       <option value="draft" {% if filters.status == 'draft' %}selected{% endif %}>草稿</option>
       <option value="active" {% if filters.status == 'active' %}selected{% endif %}>進行中</option>
       <option value="closed" {% if filters.status == 'closed' %}selected{% endif %}>已關閉</option>
+      <option value="deleted" {% if filters.status == 'deleted' %}selected{% endif %}>已刪除</option>
     </select>
   </div>
   <div class="col-md-3">
@@ -47,6 +48,7 @@
       <tr>
         <td><a href="/activities/{{ activity.id }}">{{ activity.title }}</a></td>
         <td>
+          {% if activity.deleted_at %}<span class="badge bg-danger me-1">已刪除</span>{% endif %}
           {% if activity.status == 'active' %}<span class="badge bg-success">進行中</span>
           {% elif activity.status == 'draft' %}<span class="badge bg-secondary">草稿</span>
           {% else %}<span class="badge bg-dark">已關閉</span>{% endif %}

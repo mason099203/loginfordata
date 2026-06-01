@@ -10,7 +10,7 @@ from pymongo.errors import PyMongoError
 
 from app.config import UPLOAD_DIR
 from app.database import ensure_indexes
-from app.routers import activities, admin, auth, chat, templates as templates_router
+from app.routers import activities, admin, auth, blacklist, chat, templates as templates_router
 from app.services.auth_service import bootstrap_admin
 
 logger = logging.getLogger(__name__)
@@ -48,6 +48,7 @@ app.include_router(auth.router)
 app.include_router(activities.router)
 app.include_router(admin.router)
 app.include_router(templates_router.router)
+app.include_router(blacklist.router)
 app.include_router(chat.router)
 
 

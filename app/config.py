@@ -1,5 +1,5 @@
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -23,8 +23,26 @@ if not UPLOAD_DIR.is_absolute():
 
 
 def app_now() -> datetime:
-    """Naive datetime in app timezone; matches datetime-local form values."""
-    return datetime.now(APP_TIMEZONE).replace(tzinfo=None)
+    """Current time in app timezone (aware)."""
+    return datetime.now(APP_TIMEZONE)
+
+
+def form_datetime_to_utc(dt: datetime) -> datetime:
+    """datetime-local form values are naive app timezone; store as UTC."""
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc)
+    return dt.replace(tzinfo=APP_TIMEZONE).astimezone(timezone.utc)
+
+
+def db_datetime_to_local(dt: datetime) -> datetime:
+    """Convert MongoDB datetime to naive app timezone for templates."""
+    if dt.tzinfo is None:
+        return dt
+    return dt.astimezone(APP_TIMEZONE).replace(tzinfo=None)
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 SESSION_COOKIE_NAME = "session"
 SESSION_MAX_AGE = 60 * 60 * 24 * 7  # 7 days

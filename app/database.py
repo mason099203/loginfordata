@@ -11,7 +11,7 @@ def get_client() -> MongoClient:
     if _client is None:
         if not MONGODB_URI:
             raise RuntimeError("MONGODB_URI is not set. Copy .env.example to .env and configure it.")
-        _client = MongoClient(MONGODB_URI)
+        _client = MongoClient(MONGODB_URI, tz_aware=True)
     return _client
 
 
@@ -30,3 +30,4 @@ def ensure_indexes():
         [("room_type", ASCENDING), ("room_id", ASCENDING), ("created_at", DESCENDING)]
     )
     db.activity_templates.create_index([("created_by", ASCENDING), ("updated_at", DESCENDING)])
+    db.registration_logs.create_index([("activity_id", ASCENDING), ("created_at", DESCENDING)])

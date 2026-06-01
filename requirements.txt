@@ -8,3 +8,4 @@ passlib[bcrypt]
 bcrypt<5.0
 itsdangerous
 aiofiles
+tzdata

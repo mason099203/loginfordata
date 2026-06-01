@@ -37,6 +37,8 @@ function initChat(config) {
     ws.send(JSON.stringify({ content }));
     input.value = "";
   });
+
+  box.scrollTop = box.scrollHeight;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
