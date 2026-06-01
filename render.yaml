@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: loginfordata
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.12
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        value: activity_app
+      - key: SECRET_KEY
+        generateValue: true
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        value: admin@example.com
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
+      - key: UPLOAD_DIR
+        value: app/static/uploads
+      - key: MAX_UPLOAD_MB
+        value: 2
