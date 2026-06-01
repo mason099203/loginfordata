@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}我的活動{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">我的活動</h1>
+  <div class="d-flex gap-2">
+    <a href="/my/templates" class="btn btn-outline-secondary">活動範本</a>
+    <a href="/activities/create" class="btn btn-primary">建立活動</a>
+  </div>
+</div>
+{% if activities %}
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead>
+      <tr>
+        <th>標題</th>
+        <th>狀態</th>
+        <th>開始</th>
+        <th>結束</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for activity in activities %}
+      <tr>
+        <td>{{ activity.title }}</td>
+        <td>
+          {% if activity.status == 'active' %}<span class="badge bg-success">進行中</span>
+          {% elif activity.status == 'draft' %}<span class="badge bg-secondary">草稿</span>
+          {% else %}<span class="badge bg-dark">已關閉</span>{% endif %}
+        </td>
+        <td>{{ activity.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>{{ activity.end_time.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td><a href="/activities/{{ activity.id }}/edit" class="btn btn-sm btn-outline-primary">編輯</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="alert alert-secondary">您尚未建立任何活動。</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,32 @@
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+main {
+  flex: 1;
+}
+.chat-box {
+  height: 420px;
+  overflow-y: auto;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  padding: 1rem;
+}
+.chat-message {
+  margin-bottom: 0.75rem;
+}
+.chat-message .meta {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+.activity-card img {
+  max-height: 180px;
+  object-fit: cover;
+}
+.flash-msg {
+  position: sticky;
+  top: 4.5rem;
+  z-index: 1020;
+}

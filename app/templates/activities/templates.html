@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}我的範本{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">我的活動範本</h1>
+  <a href="/activities/create" class="btn btn-primary">建立活動</a>
+</div>
+<p class="text-muted">在活動編輯頁可將目前內容儲存為範本，之後建立新活動時可快速套用。</p>
+{% if templates %}
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead>
+      <tr>
+        <th>範本名稱</th>
+        <th>活動標題</th>
+        <th>位置數</th>
+        <th>更新時間</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in templates %}
+      <tr>
+        <td>{{ t.name }}</td>
+        <td>{{ t.title }}</td>
+        <td>{{ t.positions|length }}</td>
+        <td>{{ t.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td class="d-flex gap-2">
+          <a href="/activities/create?template_id={{ t.id }}" class="btn btn-sm btn-success">使用範本</a>
+          <form method="post" action="/my/templates/{{ t.id }}/delete" onsubmit="return confirm('確定刪除此範本？');">
+            <button type="submit" class="btn btn-sm btn-outline-danger">刪除</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="alert alert-secondary">尚無範本。編輯活動時可將內容儲存為範本。</div>
+{% endif %}
+{% endblock %}

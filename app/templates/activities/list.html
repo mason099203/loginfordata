@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}進行中活動{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">進行中活動</h1>
+{% if activities %}
+<div class="row g-4">
+  {% for activity in activities %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100 activity-card shadow-sm">
+      {% if activity.image_url %}
+      <img src="{{ activity.image_url }}" class="card-img-top" alt="{{ activity.title }}">
+      {% endif %}
+      <div class="card-body d-flex flex-column">
+        <h2 class="h5 card-title">{{ activity.title }}</h2>
+        <p class="card-text text-muted small">{{ activity.description[:120] }}{% if activity.description|length > 120 %}...{% endif %}</p>
+        <p class="small mb-2">
+          <span class="badge bg-success">進行中</span><br>
+          {{ activity.start_time.strftime('%Y-%m-%d %H:%M') }} ~ {{ activity.end_time.strftime('%Y-%m-%d %H:%M') }}
+        </p>
+        <a href="/activities/{{ activity.id }}" class="btn btn-outline-primary mt-auto">查看詳情</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-secondary">目前沒有進行中的活動。</div>
+{% endif %}
+{% endblock %}

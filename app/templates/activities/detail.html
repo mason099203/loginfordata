@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ activity.title }}{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      {% if activity.image_url %}
+      <img src="{{ activity.image_url }}" class="card-img-top" alt="{{ activity.title }}" style="max-height:320px;object-fit:cover;">
+      {% endif %}
+      <div class="card-body">
+        <h1 class="h3">{{ activity.title }}</h1>
+        <p class="text-muted">{{ activity.description }}</p>
+        <p>
+          {% if activity.is_live %}
+          <span class="badge bg-success">進行中</span>
+          {% else %}
+          <span class="badge bg-secondary">{{ activity.status }}</span>
+          {% endif %}
+        </p>
+        <p class="small">時間：{{ activity.start_time.strftime('%Y-%m-%d %H:%M') }} ~ {{ activity.end_time.strftime('%Y-%m-%d %H:%M') }}</p>
+        {% if can_chat %}
+        <a href="/chat/activity/{{ activity.id }}" class="btn btn-primary">進入聊天室</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-header">報名位置</div>
+      <div class="card-body">
+        {% if activity.positions %}
+        {% for pos in activity.positions %}
+        <div class="border rounded p-3 mb-3">
+          <h2 class="h6">{{ pos.name }}</h2>
+          <p class="small text-muted mb-2">{{ pos.description }}</p>
+          <p class="small">人數：{{ pos.participant_count }} / {{ pos.capacity }}</p>
+          {% if activity.is_live %}
+            {% if pos.is_joined %}
+            <form method="post" action="/activities/{{ activity.id }}/leave/{{ pos.id }}">
+              <button class="btn btn-sm btn-outline-danger">取消報名</button>
+            </form>
+            {% elif pos.participant_count < pos.capacity %}
+            <form method="post" action="/activities/{{ activity.id }}/join/{{ pos.id }}">
+              <button class="btn btn-sm btn-success">報名</button>
+            </form>
+            {% else %}
+            <span class="badge bg-warning text-dark">已額滿</span>
+            {% endif %}
+          {% else %}
+          <span class="text-muted small">未進行中</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="text-muted mb-0">尚未設定報名位置。</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

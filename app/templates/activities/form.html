@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'create' %}建立活動{% else %}編輯活動{% endif %}{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">{% if mode == 'create' %}建立活動{% else %}編輯活動{% endif %}</h1>
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+{% if mode == 'create' and templates %}
+<div class="card mb-4">
+  <div class="card-body">
+    <label class="form-label">從範本建立（選填）</label>
+    <select class="form-select" onchange="if(this.value){ window.location.href='/activities/create?template_id='+this.value; }">
+      <option value="">— 不使用範本 —</option>
+      {% for t in templates %}
+      <option value="{{ t.id }}" {% if template_id == t.id %}selected{% endif %}>{{ t.name }}（{{ t.title }}）</option>
+      {% endfor %}
+    </select>
+    <div class="mt-2"><a href="/my/templates" class="small">管理我的範本</a></div>
+  </div>
+</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data"
+  action="{% if mode == 'create' %}/activities/create{% else %}/activities/{{ activity.id }}/edit{% endif %}">
+  {% if mode == 'create' and template_data and template_data.image_url %}
+  <input type="hidden" name="template_image_url" value="{{ template_data.image_url }}">
+  {% endif %}
+  <div class="row g-3">
+    <div class="col-md-8">
+      <label class="form-label">活動標題</label>
+      <input type="text" name="title" class="form-control" required
+        value="{% if activity %}{{ activity.title }}{% elif template_data %}{{ template_data.title }}{% elif form %}{{ form.title }}{% endif %}">
+    </div>
+    <div class="col-12">
+      <label class="form-label">活動描述</label>
+      <textarea name="description" class="form-control" rows="4">{% if activity %}{{ activity.description }}{% elif template_data %}{{ template_data.description }}{% elif form %}{{ form.description }}{% endif %}</textarea>
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">開始時間</label>
+      <input type="datetime-local" name="start_time" class="form-control" required
+        value="{% if activity %}{{ activity.start_time.strftime('%Y-%m-%dT%H:%M') }}{% elif form %}{{ form.start_time }}{% endif %}">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">結束時間</label>
+      <input type="datetime-local" name="end_time" class="form-control" required
+        value="{% if activity %}{{ activity.end_time.strftime('%Y-%m-%dT%H:%M') }}{% elif form %}{{ form.end_time }}{% endif %}">
+    </div>
+    {% if mode == 'edit' %}
+    <div class="col-12">
+      <label class="form-label">活動圖片</label>
+      {% if activity.image_url %}
+      <div class="mb-2"><img src="{{ activity.image_url }}" alt="活動圖片" class="img-thumbnail" style="max-height:160px;"></div>
+      {% endif %}
+      <input type="file" name="image" class="form-control" accept="image/*">
+    </div>
+    {% elif template_data and template_data.image_url %}
+    <div class="col-12">
+      <label class="form-label">範本圖片（建立後沿用）</label>
+      <div><img src="{{ template_data.image_url }}" alt="範本圖片" class="img-thumbnail" style="max-height:160px;"></div>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if mode == 'edit' or (mode == 'create' and template_data and template_data.positions) %}
+  <hr class="my-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h5 mb-0">報名位置</h2>
+    {% if mode == 'edit' %}
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="add-position">新增位置</button>
+    {% endif %}
+  </div>
+  <div id="positions-list">
+    {% if mode == 'edit' %}
+    {% for pos in activity.positions %}
+    <div class="row g-2 align-items-end position-row mb-2">
+      <input type="hidden" name="position_ids" value="{{ pos.id }}">
+      <div class="col-md-3">
+        <label class="form-label">位置名稱</label>
+        <input type="text" name="position_names" class="form-control" value="{{ pos.name }}" required>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">描述</label>
+        <input type="text" name="position_descriptions" class="form-control" value="{{ pos.description }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">人數上限</label>
+        <input type="number" name="position_capacities" class="form-control" min="1" value="{{ pos.capacity }}" required>
+      </div>
+      <div class="col-md-2">
+        <button type="button" class="btn btn-outline-danger w-100 remove-position">移除</button>
+      </div>
+    </div>
+    {% endfor %}
+    {% elif template_data %}
+    {% for pos in template_data.positions %}
+    <div class="row g-2 align-items-end position-row mb-2">
+      <div class="col-md-3">
+        <label class="form-label">位置名稱</label>
+        <input type="text" name="position_names" class="form-control" value="{{ pos.name }}" required>
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">描述</label>
+        <input type="text" name="position_descriptions" class="form-control" value="{{ pos.description }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">人數上限</label>
+        <input type="number" name="position_capacities" class="form-control" min="1" value="{{ pos.capacity }}" required>
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <div class="d-flex gap-2 mt-4 flex-wrap">
+    <button type="submit" class="btn btn-primary">{% if mode == 'create' %}建立並繼續編輯{% else %}儲存{% endif %}</button>
+    <a href="/my/activities" class="btn btn-outline-secondary">返回列表</a>
+  </div>
+</form>
+
+{% if mode == 'edit' %}
+<div class="card mt-4">
+  <div class="card-body">
+    <h2 class="h6">儲存為範本</h2>
+    <p class="small text-muted mb-3">將目前活動的標題、描述、圖片與報名位置存成範本，方便下次快速建立。<br>請先按「儲存」更新活動，再儲存範本。</p>
+    <form method="post" action="/activities/{{ activity.id }}/save-template" class="row g-2 align-items-end">
+      <div class="col-md-6">
+        <label class="form-label">範本名稱</label>
+        <input type="text" name="template_name" class="form-control" placeholder="例如：週末志工活動" required maxlength="100">
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-outline-primary w-100">儲存範本</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-body">
+    <h2 class="h6">活動狀態</h2>
+    <p class="small text-muted mb-3">目前：
+      {% if activity.status == 'active' %}進行中{% elif activity.status == 'draft' %}草稿{% else %}已關閉{% endif %}
+    </p>
+    <div class="d-flex gap-2 flex-wrap">
+      {% if activity.status != 'active' %}
+      <form method="post" action="/activities/{{ activity.id }}/status">
+        <input type="hidden" name="status" value="active">
+        <button type="submit" class="btn btn-success btn-sm">啟動活動</button>
+      </form>
+      {% endif %}
+      {% if activity.status == 'active' %}
+      <form method="post" action="/activities/{{ activity.id }}/status">
+        <input type="hidden" name="status" value="closed">
+        <button type="submit" class="btn btn-dark btn-sm">關閉活動</button>
+      </form>
+      {% endif %}
+      {% if activity.status != 'draft' %}
+      <form method="post" action="/activities/{{ activity.id }}/status">
+        <input type="hidden" name="status" value="draft">
+        <button type="submit" class="btn btn-secondary btn-sm">設為草稿</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if mode == 'edit' %}
+<script>
+document.getElementById('add-position')?.addEventListener('click', () => {
+  const list = document.getElementById('positions-list');
+  const row = document.createElement('div');
+  row.className = 'row g-2 align-items-end position-row mb-2';
+  row.innerHTML = `
+    <input type="hidden" name="position_ids" value="">
+    <div class="col-md-3"><label class="form-label">位置名稱</label><input type="text" name="position_names" class="form-control" required></div>
+    <div class="col-md-5"><label class="form-label">描述</label><input type="text" name="position_descriptions" class="form-control"></div>
+    <div class="col-md-2"><label class="form-label">人數上限</label><input type="number" name="position_capacities" class="form-control" min="1" value="1" required></div>
+    <div class="col-md-2"><button type="button" class="btn btn-outline-danger w-100 remove-position">移除</button></div>`;
+  list.appendChild(row);
+});
+document.getElementById('positions-list')?.addEventListener('click', (e) => {
+  if (e.target.classList.contains('remove-position')) {
+    e.target.closest('.position-row')?.remove();
+  }
+});
+</script>
+{% endif %}
+{% endblock %}

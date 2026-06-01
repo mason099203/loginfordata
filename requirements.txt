@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+jinja2
+python-multipart
+pymongo[srv]==3.12
+python-dotenv
+passlib[bcrypt]
+bcrypt<5.0
+itsdangerous
+aiofiles

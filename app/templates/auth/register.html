@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}註冊 - 活動管理系統{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h1 class="h4 mb-3">註冊帳號</h1>
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <form method="post" action="/register">
+          <div class="mb-3">
+            <label class="form-label">顯示名稱</label>
+            <input type="text" name="display_name" class="form-control" required maxlength="50">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">密碼（至少 6 字元）</label>
+            <input type="password" name="password" class="form-control" required minlength="6">
+          </div>
+          <button type="submit" class="btn btn-primary w-100">註冊</button>
+        </form>
+        <p class="mt-3 mb-0 text-center"><a href="/login">已有帳號？登入</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}權限不足{% endblock %}
+{% block content %}
+<div class="text-center py-5">
+  <h1 class="h3">403 權限不足</h1>
+  <p class="text-muted">{{ detail }}</p>
+  <a href="/" class="btn btn-primary">返回首頁</a>
+</div>
+{% endblock %}

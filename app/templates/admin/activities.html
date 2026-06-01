@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}活動紀錄{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">活動紀錄</h1>
+
+<form method="get" class="row g-3 mb-4">
+  <div class="col-md-2">
+    <label class="form-label">狀態</label>
+    <select name="status" class="form-select">
+      <option value="">全部</option>
+      <option value="draft" {% if filters.status == 'draft' %}selected{% endif %}>草稿</option>
+      <option value="active" {% if filters.status == 'active' %}selected{% endif %}>進行中</option>
+      <option value="closed" {% if filters.status == 'closed' %}selected{% endif %}>已關閉</option>
+    </select>
+  </div>
+  <div class="col-md-3">
+    <label class="form-label">關鍵字</label>
+    <input type="text" name="keyword" class="form-control" value="{{ filters.keyword }}" placeholder="標題或描述">
+  </div>
+  <div class="col-md-2">
+    <label class="form-label">開始日（起）</label>
+    <input type="datetime-local" name="date_from" class="form-control" value="{{ filters.date_from }}">
+  </div>
+  <div class="col-md-2">
+    <label class="form-label">開始日（迄）</label>
+    <input type="datetime-local" name="date_to" class="form-control" value="{{ filters.date_to }}">
+  </div>
+  <div class="col-md-3 d-flex align-items-end">
+    <button type="submit" class="btn btn-primary me-2">篩選</button>
+    <a href="/admin/activities" class="btn btn-outline-secondary">清除</a>
+  </div>
+</form>
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead>
+      <tr>
+        <th>標題</th>
+        <th>狀態</th>
+        <th>開始</th>
+        <th>結束</th>
+        <th>位置數</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for activity in activities %}
+      <tr>
+        <td><a href="/activities/{{ activity.id }}">{{ activity.title }}</a></td>
+        <td>
+          {% if activity.status == 'active' %}<span class="badge bg-success">進行中</span>
+          {% elif activity.status == 'draft' %}<span class="badge bg-secondary">草稿</span>
+          {% else %}<span class="badge bg-dark">已關閉</span>{% endif %}
+        </td>
+        <td>{{ activity.start_time.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>{{ activity.end_time.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>{{ activity.positions|length }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="text-muted">沒有符合條件的活動。</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
