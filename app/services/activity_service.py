@@ -4,12 +4,13 @@ from uuid import uuid4
 
 from bson import ObjectId
 
+from app.config import app_now
 from app.database import get_db
 from app.schemas.activity import ActivityOut, PositionOut
 
 
 def _now() -> datetime:
-    return datetime.now()
+    return app_now()
 
 
 def _is_live(doc: dict, now: datetime | None = None) -> bool:

@@ -57,6 +57,7 @@ python -m venv .venv
 | **Runtime** | Python 3 |
 | **Build Command** | `pip install -r requirements.txt` |
 | **Start Command** | `python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
+| **Health Check Path** | `/health` |
 
 **Environment Variables**（必填）：
 

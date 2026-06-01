@@ -36,6 +36,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="AVA報名表", lifespan=lifespan)
 
+
+@app.api_route("/health", methods=["GET", "HEAD"])
+async def health_check():
+    return {"status": "ok"}
+
+
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(auth.router)
