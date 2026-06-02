@@ -173,7 +173,7 @@ def admin_verify_user_email(user_id: str) -> tuple[bool, str]:
         if doc.get("email_verified", True):
             return False, "此帳號已驗證"
         return False, "無法確認此帳號"
-    return True, "已代為確認 Email"
+    return True, "確認授權"
 
 
 def get_login_verification_message(email: str) -> str:

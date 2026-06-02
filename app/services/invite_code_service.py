@@ -137,14 +137,14 @@ def verify_invitee(owner_id: str, target_user_id: str) -> tuple[bool, str]:
     if not doc:
         return False, "使用者不存在"
     if doc.get("email_verified", True):
-        return False, "此帳號已驗證"
+        return False, "此帳號已授權"
     if doc.get("invited_by") != ObjectId(owner_id):
         return False, "此使用者並非使用您的邀請碼註冊"
     db.users.update_one(
         {"_id": ObjectId(target_user_id)},
         {"$set": {"email_verified": True}},
     )
-    return True, f"已確認「{doc.get('display_name', '')}」的帳號"
+    return True, f"已授權「{doc.get('display_name', '')}」的帳號"
 
 
 def bulk_verify_invitees(owner_id: str, user_ids: list[str]) -> tuple[int, str]:
@@ -152,7 +152,7 @@ def bulk_verify_invitees(owner_id: str, user_ids: list[str]) -> tuple[int, str]:
         return 0, "無效的使用者"
     oids = [ObjectId(uid) for uid in user_ids if ObjectId.is_valid(uid)]
     if not oids:
-        return 0, "請至少選擇一位待確認的使用者"
+        return 0, "請至少選擇一位待授權的使用者"
     result = get_db().users.update_many(
         {
             "_id": {"$in": oids},
@@ -164,5 +164,5 @@ def bulk_verify_invitees(owner_id: str, user_ids: list[str]) -> tuple[int, str]:
     )
     count = result.modified_count
     if count == 0:
-        return 0, "所選使用者皆已確認或無法操作"
-    return count, f"已批次確認 {count} 位使用者"
+        return 0, "所選使用者皆已授權或無法操作"
+    return count, f"已批次授權 {count} 位使用者"

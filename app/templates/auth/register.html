@@ -6,7 +6,6 @@
     <div class="card shadow-sm">
       <div class="card-body">
         <h1 class="h4 mb-3">註冊帳號</h1>
-        <p class="text-muted small">填寫有效邀請碼註冊後，需由發放邀請碼的高級使用者確認方可登入；未填邀請碼需等待管理員確認。</p>
         {% if error %}
         <div class="alert alert-danger">{{ error }}</div>
         {% endif %}
@@ -20,13 +19,13 @@
             <input type="email" name="email" class="form-control" required>
           </div>
           <div class="mb-3">
-            <label class="form-label">密碼（至少 6 字元）</label>
+            <label class="form-label">密碼</label>
             <input type="password" name="password" class="form-control" required minlength="6">
           </div>
           <div class="mb-3">
-            <label class="form-label">邀請碼（選填）</label>
+            <label class="form-label">邀請碼</label>
             <input type="text" name="invite_code" class="form-control text-uppercase"
-                   maxlength="20" placeholder="向高級使用者取得" value="{{ invite_code or '' }}">
+                   maxlength="20" value="{{ invite_code or '' }}">
           </div>
           <button type="submit" class="btn btn-primary w-100">註冊</button>
         </form>

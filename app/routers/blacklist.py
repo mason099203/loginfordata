@@ -25,10 +25,10 @@ async def blacklist_page(
 
 @router.post("/my/blacklist/add")
 async def blacklist_add(
-    email: str = Form(...),
+    display_name: str = Form(...),
     user: UserOut = Depends(require_advanced_user),
 ):
-    ok, msg = add_to_blacklist(user.id, email)
+    ok, msg = add_to_blacklist(user.id, display_name)
     param = "msg" if ok else "error"
     return RedirectResponse(f"/my/blacklist?{param}={msg}", status_code=303)
 

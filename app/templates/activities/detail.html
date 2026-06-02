@@ -68,7 +68,9 @@
               <tr>
                 <td class="fw-semibold">{{ pos.name }}</td>
                 <td class="text-muted small">{{ pos.description or '—' }}</td>
-                <td class="text-center text-nowrap">{{ pos.participant_count }} / {{ pos.capacity }}</td>
+                <td class="text-center text-nowrap slot-count{% if pos.participant_count >= pos.capacity %} slot-count-full{% endif %}">
+                  {{ pos.participant_count }} / {{ pos.capacity }}
+                </td>
                 <td>
                   {% if pos.participants %}
                   <div class="participant-names">
@@ -82,18 +84,18 @@
                 </td>
                 <td class="text-end text-nowrap">
                   {% if is_blacklisted %}
-                  <span class="badge bg-danger">無法報名</span>
+                  <span class="badge badge-register-blocked">無法報名</span>
                   {% elif activity.is_live %}
                     {% if pos.is_joined %}
                     <form method="post" action="/activities/{{ activity.id }}/leave/{{ pos.id }}" class="d-inline">
-                      <button class="btn btn-sm btn-outline-danger">取消報名</button>
+                      <button type="submit" class="btn btn-sm btn-cancel-register">取消報名</button>
                     </form>
                     {% elif pos.participant_count < pos.capacity %}
                     <form method="post" action="/activities/{{ activity.id }}/join/{{ pos.id }}" class="d-inline">
-                      <button class="btn btn-sm btn-success">報名</button>
+                      <button type="submit" class="btn btn-sm btn-register">報名</button>
                     </form>
                     {% else %}
-                    <span class="badge bg-warning text-dark">已額滿</span>
+                    <span class="badge badge-slot-full">已額滿</span>
                     {% endif %}
                   {% else %}
                   <span class="text-muted small">未進行中</span>

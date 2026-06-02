@@ -7,9 +7,9 @@
       <div class="card-body">
         <h1 class="h4 mb-3">登入</h1>
         {% if invited %}
-        <div class="alert alert-success">註冊成功，請等待發放邀請碼的高級使用者確認後再登入。</div>
+        <div class="alert alert-success">註冊成功，請等待管理員認證後再登入。</div>
         {% elif registered %}
-        <div class="alert alert-success">註冊成功，請等待管理員確認 Email 後再登入。</div>
+        <div class="alert alert-success">註冊成功，請等待管理員認證後再登入。</div>
         {% endif %}
         {% if error %}
         <div class="alert alert-danger">{{ error }}</div>

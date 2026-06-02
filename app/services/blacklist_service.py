@@ -1,8 +1,10 @@
+import re
+
 from bson import ObjectId
 
 from app.database import get_db
 from app.schemas.user import UserOut
-from app.services.auth_service import _doc_to_user, get_user_by_email
+from app.services.auth_service import _doc_to_user
 
 
 def _get_blocked_ids(owner_id: str) -> list[ObjectId]:
@@ -28,17 +30,28 @@ def list_blocked_users(owner_id: str) -> list[UserOut]:
     return [_doc_to_user(doc) for doc in cursor]
 
 
-def add_to_blacklist(owner_id: str, email: str) -> tuple[bool, str]:
+def add_to_blacklist(owner_id: str, display_name: str) -> tuple[bool, str]:
     if not ObjectId.is_valid(owner_id):
         return False, "無效的請求"
-    normalized = email.lower().strip()
-    if not normalized:
-        return False, "請輸入 Email"
+    name = display_name.strip()
+    if not name:
+        return False, "請輸入使用者名稱"
 
-    target = get_user_by_email(normalized)
-    if not target:
-        return False, "找不到此 Email 的使用者"
+    db = get_db()
+    matches = list(
+        db.users.find(
+            {
+                "display_name": {"$regex": f"^{re.escape(name)}$", "$options": "i"},
+                "is_active": True,
+            }
+        )
+    )
+    if not matches:
+        return False, "找不到此名稱的使用者"
+    if len(matches) > 1:
+        return False, "有多位使用者使用相同名稱，無法自動加入"
 
+    target = matches[0]
     target_id = target["_id"]
     if str(target_id) == owner_id:
         return False, "無法將自己加入黑名單"
@@ -46,7 +59,7 @@ def add_to_blacklist(owner_id: str, email: str) -> tuple[bool, str]:
     if target.get("role") == "admin":
         return False, "無法將管理員加入黑名單"
 
-    result = get_db().users.update_one(
+    result = db.users.update_one(
         {"_id": ObjectId(owner_id)},
         {"$addToSet": {"blocked_users": target_id}},
     )

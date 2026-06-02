@@ -16,10 +16,47 @@ ROLE_LABELS = {
     "admin": "管理員",
 }
 
+USERS_PER_PAGE = 10
+
 
 def list_users() -> list[UserOut]:
     cursor = get_db().users.find({"is_active": True}).sort("created_at", -1)
     return [_doc_to_user(doc) for doc in cursor]
+
+
+def list_users_filtered(
+    *,
+    keyword: str | None = None,
+    role: str | None = None,
+    email_verified: str | None = None,
+    page: int = 1,
+    per_page: int = USERS_PER_PAGE,
+) -> tuple[list[UserOut], int, int, int]:
+    query: dict[str, Any] = {"is_active": True}
+    if role and role in ROLE_LABELS:
+        query["role"] = role
+    if email_verified == "yes":
+        query["email_verified"] = True
+    elif email_verified == "no":
+        query["email_verified"] = False
+    if keyword and keyword.strip():
+        kw = keyword.strip()
+        query["$or"] = [
+            {"display_name": {"$regex": kw, "$options": "i"}},
+            {"email": {"$regex": kw, "$options": "i"}},
+        ]
+    db = get_db()
+    total = db.users.count_documents(query)
+    total_pages = max(1, (total + per_page - 1) // per_page) if total else 1
+    page = max(1, min(page, total_pages))
+    skip = (page - 1) * per_page
+    cursor = (
+        db.users.find(query)
+        .sort("created_at", -1)
+        .skip(skip)
+        .limit(per_page)
+    )
+    return [_doc_to_user(doc) for doc in cursor], total, page, total_pages
 
 
 def update_user_role(user_id: str, role: str, actor_id: str) -> tuple[bool, str]:
