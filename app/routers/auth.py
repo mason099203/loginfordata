@@ -1,23 +1,13 @@
-from urllib.parse import quote
-
-import logging
-
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from app.config import SESSION_COOKIE_NAME, SESSION_MAX_AGE
 from app.dependencies import create_session_token, get_optional_user
-from app.services.auth_service import (
-    authenticate_user,
-    create_user,
-    issue_verification_code,
-    verify_email_code,
-)
+from app.services.auth_service import authenticate_user, create_user, get_login_verification_message
 
 router = APIRouter(tags=["auth"])
 templates = Jinja2Templates(directory="app/templates")
-logger = logging.getLogger(__name__)
 
 
 @router.get("/register", response_class=HTMLResponse)
@@ -27,7 +17,7 @@ async def register_page(request: Request, user=Depends(get_optional_user)):
     return templates.TemplateResponse(
         request,
         "auth/register.html",
-        {"user": None, "error": None},
+        {"user": None, "error": None, "invite_code": ""},
     )
 
 
@@ -37,87 +27,45 @@ async def register_submit(
     email: str = Form(...),
     password: str = Form(...),
     display_name: str = Form(...),
+    invite_code: str = Form(""),
 ):
     try:
-        create_user(email, password, display_name)
-        issue_verification_code(email)
+        create_user(
+            email,
+            password,
+            display_name,
+            invite_code=invite_code.strip() or None,
+        )
     except ValueError as exc:
         return templates.TemplateResponse(
             request,
             "auth/register.html",
-            {"user": None, "error": str(exc)},
+            {"user": None, "error": str(exc), "invite_code": invite_code},
             status_code=400,
         )
-    except Exception:
-        logger.exception("驗證信寄送失敗: %s", email)
-        return templates.TemplateResponse(
-            request,
-            "auth/register.html",
-            {"user": None, "error": "驗證信寄送失敗，請稍後再試"},
-            status_code=500,
-        )
-    return RedirectResponse(f"/register/verify?email={quote(email.lower().strip())}", status_code=303)
+    if invite_code.strip():
+        return RedirectResponse("/login?registered=1&invited=1", status_code=303)
+    return RedirectResponse("/login?registered=1", status_code=303)
 
 
-@router.get("/register/verify", response_class=HTMLResponse)
-async def verify_email_page(
-    request: Request,
-    email: str | None = None,
-    user=Depends(get_optional_user),
-):
-    if user:
-        return RedirectResponse("/", status_code=303)
-    return templates.TemplateResponse(
-        request,
-        "auth/verify_email.html",
-        {"user": None, "email": email or "", "error": None, "success": None},
-    )
-
-
-@router.post("/register/verify")
-async def verify_email_submit(
-    request: Request,
-    email: str = Form(...),
-    code: str = Form(...),
-):
-    ok, msg = verify_email_code(email, code)
-    if not ok:
-        return templates.TemplateResponse(
-            request,
-            "auth/verify_email.html",
-            {"user": None, "email": email, "error": msg, "success": None},
-            status_code=400,
-        )
-    return RedirectResponse("/login?verified=1", status_code=303)
-
-
-@router.post("/register/resend")
-async def resend_verification(
-    request: Request,
-    email: str = Form(...),
-):
-    try:
-        issue_verification_code(email)
-    except ValueError as exc:
-        return templates.TemplateResponse(
-            request,
-            "auth/verify_email.html",
-            {"user": None, "email": email, "error": str(exc), "success": None},
-            status_code=400,
-        )
-    except Exception:
-        logger.exception("驗證信寄送失敗: %s", email)
-        return templates.TemplateResponse(
-            request,
-            "auth/verify_email.html",
-            {"user": None, "email": email, "error": "驗證信寄送失敗，請稍後再試", "success": None},
-            status_code=500,
-        )
-    return templates.TemplateResponse(
-        request,
-        "auth/verify_email.html",
-        {"user": None, "email": email, "error": None, "success": "驗證碼已重新寄出，請查收 Email"},
-    )
+# --- Email 驗證碼流程已停用 ---
+# 備註：Email 驗證僅能由管理員於 /admin/users 頁面「代為確認 Email」。
+# 若需恢復自動寄信驗證，請取消下方註解並還原 issue_verification_code 等函式。
+#
+# from urllib.parse import quote
+# from app.services.auth_service import issue_verification_code, verify_email_code
+#
+# @router.get("/register/verify", response_class=HTMLResponse)
+# async def verify_email_page(...):
+#     ...
+#
+# @router.post("/register/verify")
+# async def verify_email_submit(...):
+#     ...
+#
+# @router.post("/register/resend")
+# async def resend_verification(...):
+#     ...
 
 
 @router.get("/login", response_class=HTMLResponse)
@@ -125,8 +73,7 @@ async def login_page(request: Request, user=Depends(get_optional_user)):
     if user:
         return RedirectResponse("/", status_code=303)
     registered = request.query_params.get("registered")
-    verified = request.query_params.get("verified")
-    pending_email = request.query_params.get("email")
+    invited = request.query_params.get("invited")
     return templates.TemplateResponse(
         request,
         "auth/login.html",
@@ -134,8 +81,7 @@ async def login_page(request: Request, user=Depends(get_optional_user)):
             "user": None,
             "error": None,
             "registered": registered,
-            "verified": verified,
-            "pending_email": pending_email,
+            "invited": invited,
         },
     )
 
@@ -156,8 +102,7 @@ async def login_submit(
                 "user": None,
                 "error": "Email 或密碼錯誤",
                 "registered": None,
-                "verified": None,
-                "pending_email": None,
+                "invited": None,
             },
             status_code=400,
         )
@@ -167,10 +112,9 @@ async def login_submit(
             "auth/login.html",
             {
                 "user": None,
-                "error": "Email 尚未驗證，請先輸入驗證碼或聯絡管理員代為確認",
+                "error": get_login_verification_message(email),
                 "registered": None,
-                "verified": None,
-                "pending_email": user.email,
+                "invited": None,
             },
             status_code=400,
         )

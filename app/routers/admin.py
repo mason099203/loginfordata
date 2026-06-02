@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from app.dependencies import require_role
 from app.schemas.user import UserOut
 from app.services.admin_service import (
+    bulk_verify_user_emails,
     delete_user,
     list_activities_filtered,
     list_users,
@@ -65,6 +66,15 @@ async def admin_verify_email(
 ):
     ok, msg = verify_user_email(target_user_id)
     return _flash_redirect(msg, ok)
+
+
+@router.post("/users/bulk-verify-email")
+async def admin_bulk_verify_email(
+    user_ids: list[str] = Form(default=[]),
+    user: UserOut = Depends(require_role("admin")),
+):
+    count, msg = bulk_verify_user_emails(user_ids, user.id)
+    return _flash_redirect(msg, count > 0)
 
 
 @router.post("/users/{target_user_id}/delete")

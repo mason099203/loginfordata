@@ -76,6 +76,28 @@ def verify_user_email(user_id: str) -> tuple[bool, str]:
     return admin_verify_user_email(user_id)
 
 
+def bulk_verify_user_emails(user_ids: list[str], actor_id: str) -> tuple[int, str]:
+    db = get_db()
+    oids = [
+        ObjectId(uid)
+        for uid in user_ids
+        if ObjectId.is_valid(uid) and uid != actor_id
+    ]
+    if not oids:
+        return 0, "請至少選擇一位待驗證的使用者"
+    result = db.users.update_many(
+        {"_id": {"$in": oids}, "email_verified": False, "is_active": True},
+        {
+            "$set": {"email_verified": True},
+            "$unset": {"verification_code": "", "verification_code_expires_at": ""},
+        },
+    )
+    count = result.modified_count
+    if count == 0:
+        return 0, "所選使用者皆已驗證或無法確認"
+    return count, f"已批次確認 {count} 位使用者的 Email"
+
+
 def list_activities_filtered(
     *,
     status: str | None = None,

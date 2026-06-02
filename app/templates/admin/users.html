@@ -2,16 +2,29 @@
 {% block title %}使用者管理{% endblock %}
 {% block content %}
 <h1 class="h3 mb-4">使用者管理</h1>
+<p class="text-muted small mb-3">未填邀請碼的使用者需由管理員確認；填寫邀請碼者由對應高級使用者於「邀請碼」頁確認。</p>
 {% if flash %}
 <div class="alert alert-{{ flash_type }} alert-dismissible fade show" role="alert">
   {{ flash }}
   <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
 {% endif %}
+
+<form method="post" action="/admin/users/bulk-verify-email" id="bulk-verify-form"
+      onsubmit="return confirm('確定要批次確認所選使用者的 Email 嗎？');">
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    <button type="submit" class="btn btn-success btn-sm">批次確認 Email</button>
+    <span class="text-muted small align-self-center">可勾選待驗證使用者後一次確認</span>
+  </div>
+</form>
+
 <div class="table-responsive">
   <table class="table table-hover align-middle">
     <thead>
       <tr>
+        <th style="width:40px;">
+          <input type="checkbox" class="form-check-input" id="select-all-pending" title="全選待驗證">
+        </th>
         <th>名稱</th>
         <th>Email</th>
         <th>角色</th>
@@ -23,6 +36,12 @@
     <tbody>
       {% for u in users %}
       <tr>
+        <td>
+          {% if not u.email_verified and u.id != user.id %}
+          <input type="checkbox" class="form-check-input pending-checkbox" name="user_ids"
+                 value="{{ u.id }}" form="bulk-verify-form">
+          {% endif %}
+        </td>
         <td>{{ u.display_name }}</td>
         <td>{{ u.email }}</td>
         <td>
@@ -77,4 +96,22 @@
     </tbody>
   </table>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const selectAll = document.getElementById('select-all-pending');
+  const boxes = document.querySelectorAll('.pending-checkbox');
+  if (!selectAll || !boxes.length) return;
+  selectAll.addEventListener('change', function () {
+    boxes.forEach(function (box) { box.checked = selectAll.checked; });
+  });
+  boxes.forEach(function (box) {
+    box.addEventListener('change', function () {
+      selectAll.checked = Array.from(boxes).every(function (b) { return b.checked; });
+    });
+  });
+})();
+</script>
 {% endblock %}

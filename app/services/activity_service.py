@@ -426,6 +426,6 @@ def can_access_activity_chat(activity_id: str, user_id: str, user_role: str) -> 
     doc = get_db().activities.find_one({"_id": ObjectId(activity_id)}) if ObjectId.is_valid(activity_id) else None
     if not doc or _is_deleted(doc):
         return False
-    if str(doc["created_by"]) == user_id and user_role == "advanced_user":
+    if str(doc["created_by"]) == user_id and user_role in ("advanced_user", "admin"):
         return True
     return user_joined_activity(activity_id, user_id)

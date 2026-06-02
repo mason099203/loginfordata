@@ -25,6 +25,8 @@ def get_db():
 def ensure_indexes():
     db = get_db()
     db.users.create_index("email", unique=True)
+    db.users.create_index("invite_code", unique=True, sparse=True)
+    db.users.create_index([("invited_by", ASCENDING), ("email_verified", ASCENDING)])
     db.activities.create_index([("status", ASCENDING), ("start_time", DESCENDING)])
     db.messages.create_index(
         [("room_type", ASCENDING), ("room_id", ASCENDING), ("created_at", DESCENDING)]

@@ -43,7 +43,7 @@ async def global_chat_page(request: Request, user: UserOut = Depends(get_current
             "user": user,
             "room_type": "global",
             "room_id": None,
-            "room_title": "全站聊天室",
+            "room_title": "聊天室",
             "messages": messages,
         },
     )

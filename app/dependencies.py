@@ -48,3 +48,7 @@ def require_role(*roles: str) -> Callable:
         return user
 
     return dependency
+
+
+# 管理員擁有高級使用者所有功能
+require_advanced_user = require_role("advanced_user", "admin")

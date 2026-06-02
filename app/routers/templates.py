@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from app.dependencies import require_role
+from app.dependencies import require_advanced_user
 from app.schemas.user import UserOut
 from app.services.template_service import delete_template, list_templates, save_template_from_activity
 
@@ -13,7 +13,7 @@ templates = Jinja2Templates(directory="app/templates")
 @router.get("/my/templates", response_class=HTMLResponse)
 async def my_templates(
     request: Request,
-    user: UserOut = Depends(require_role("advanced_user")),
+    user: UserOut = Depends(require_advanced_user),
 ):
     items = list_templates(user.id)
     return templates.TemplateResponse(
@@ -27,7 +27,7 @@ async def my_templates(
 async def save_activity_template(
     activity_id: str,
     template_name: str = Form(...),
-    user: UserOut = Depends(require_role("advanced_user")),
+    user: UserOut = Depends(require_advanced_user),
 ):
     result = save_template_from_activity(activity_id, user.id, template_name)
     if not result:
@@ -44,7 +44,7 @@ async def save_activity_template(
 @router.post("/my/templates/{template_id}/delete")
 async def remove_template(
     template_id: str,
-    user: UserOut = Depends(require_role("advanced_user")),
+    user: UserOut = Depends(require_advanced_user),
 ):
     if delete_template(template_id, user.id):
         return RedirectResponse("/my/templates?msg=範本已刪除", status_code=303)

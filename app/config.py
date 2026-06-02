@@ -57,6 +57,7 @@ SMTP_FROM = os.getenv("SMTP_FROM", "") or (
 SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() in ("1", "true", "yes")
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 EMAIL_FROM = os.getenv("EMAIL_FROM", "") or SMTP_FROM
+IS_RENDER = os.getenv("RENDER", "").lower() == "true"
 VERIFICATION_CODE_EXPIRE_MINUTES = int(os.getenv("VERIFICATION_CODE_EXPIRE_MINUTES", "15"))
 
 ROLES = ("user", "advanced_user", "admin")

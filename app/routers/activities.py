@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from app.config import app_now
-from app.dependencies import get_current_user, require_role
+from app.dependencies import get_current_user, require_advanced_user
 from app.schemas.user import UserOut
 from app.services.activity_service import (
     can_access_activity_chat,
@@ -85,7 +85,7 @@ async def home(request: Request, user: UserOut = Depends(get_current_user)):
 @router.get("/my/activities", response_class=HTMLResponse)
 async def my_activities(
     request: Request,
-    user: UserOut = Depends(require_role("advanced_user")),
+    user: UserOut = Depends(require_advanced_user),
 ):
     activities = list_my_activities(user.id)
     return templates.TemplateResponse(
@@ -104,7 +104,7 @@ async def my_activities(
 @router.get("/activities/create", response_class=HTMLResponse)
 async def create_activity_page(
     request: Request,
-    user: UserOut = Depends(require_role("advanced_user")),
+    user: UserOut = Depends(require_advanced_user),
     template_id: str | None = None,
 ):
     template_data = None
@@ -134,7 +134,7 @@ async def create_activity_submit(
     position_descriptions: list[str] = Form(default=[]),
     position_capacities: list[str] = Form(default=[]),
     image_url: str = Form(""),
-    user: UserOut = Depends(require_role("advanced_user")),
+    user: UserOut = Depends(require_advanced_user),
 ):
     try:
         positions = _parse_positions_from_form(
@@ -171,7 +171,7 @@ async def create_activity_submit(
 async def edit_activity_page(
     request: Request,
     activity_id: str,
-    user: UserOut = Depends(require_role("advanced_user")),
+    user: UserOut = Depends(require_advanced_user),
 ):
     activity = get_activity(activity_id, user.id)
     if not activity or activity.created_by != user.id:
@@ -205,7 +205,7 @@ async def edit_activity_submit(
     position_capacities: list[str] = Form(default=[]),
     position_ids: list[str] = Form(default=[]),
     image_url: str = Form(""),
-    user: UserOut = Depends(require_role("advanced_user")),
+    user: UserOut = Depends(require_advanced_user),
 ):
     activity = get_activity(activity_id, user.id)
     if not activity or activity.created_by != user.id:
@@ -242,7 +242,7 @@ async def change_activity_status(
     duration_hours: int = Form(3),
     start_time: str = Form(""),
     redirect_to: str = Form(""),
-    user: UserOut = Depends(require_role("advanced_user")),
+    user: UserOut = Depends(require_advanced_user),
 ):
     parsed_start = None
     if status_value == "active" and start_time.strip():
@@ -286,7 +286,7 @@ async def change_activity_status(
 @router.post("/activities/{activity_id}/delete")
 async def delete_activity_route(
     activity_id: str,
-    user: UserOut = Depends(require_role("advanced_user")),
+    user: UserOut = Depends(require_advanced_user),
 ):
     if not delete_activity(activity_id, user.id):
         return RedirectResponse("/my/activities?msg=無法刪除活動", status_code=303)

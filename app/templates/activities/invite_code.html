@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}邀請碼管理{% endblock %}
+{% block content %}
+<h1 class="h3 mb-4">邀請碼管理</h1>
+<p class="text-muted">分享邀請碼給新使用者註冊；註冊後需由您在此頁面確認，對方才能登入。</p>
+
+{% if flash %}
+<div class="alert alert-{{ flash_type }} alert-dismissible fade show" role="alert">
+  {{ flash }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <h2 class="h6">目前邀請碼</h2>
+    {% if invite_code %}
+    <p class="display-6 fw-bold text-primary mb-3 user-select-all">{{ invite_code }}</p>
+    <p class="text-muted small mb-0">新使用者註冊時填寫此碼，並等待您於下方確認後方可登入。</p>
+    {% else %}
+    <p class="text-muted mb-0">無法載入邀請碼。</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h2 class="h6">自訂邀請碼</h2>
+        <form method="post" action="/my/invite-code/set" class="row g-2 align-items-end"
+              onsubmit="return confirm('確定要更新邀請碼嗎？舊邀請碼將立即失效。');">
+          <div class="col-12">
+            <label class="form-label">新邀請碼（4～20 字元英數字）</label>
+            <input type="text" name="code" class="form-control text-uppercase" maxlength="20"
+                   pattern="[A-Za-z0-9]{4,20}" required placeholder="例如 AVA2026">
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary">更新邀請碼</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h2 class="h6">重設邀請碼</h2>
+        <p class="text-muted small">系統將隨機產生新的 8 位邀請碼，舊邀請碼立即失效。</p>
+        <form method="post" action="/my/invite-code/regenerate"
+              onsubmit="return confirm('確定要重設邀請碼嗎？舊邀請碼將立即失效。');">
+          <button type="submit" class="btn btn-outline-warning">重設邀請碼</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <span>待確認使用者（{{ pending_users|length }} 人）</span>
+    {% if pending_users %}
+    <form method="post" action="/my/invite-code/bulk-verify" id="bulk-invitee-form"
+          onsubmit="return confirm('確定要批次確認所選使用者嗎？');">
+      <button type="submit" class="btn btn-success btn-sm">批次確認</button>
+    </form>
+    {% endif %}
+  </div>
+  <div class="card-body p-0">
+    {% if pending_users %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th style="width:40px;">
+              <input type="checkbox" class="form-check-input" id="select-all-invitees" title="全選">
+            </th>
+            <th>名稱</th>
+            <th>Email</th>
+            <th>註冊時間</th>
+            <th class="text-end">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in pending_users %}
+          <tr>
+            <td>
+              <input type="checkbox" class="form-check-input invitee-checkbox" name="user_ids"
+                     value="{{ u.id }}" form="bulk-invitee-form">
+            </td>
+            <td>{{ u.display_name }}</td>
+            <td>{{ u.email }}</td>
+            <td>{{ u.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td class="text-end">
+              <form method="post" action="/my/invite-code/verify/{{ u.id }}" class="d-inline"
+                    onsubmit="return confirm('確定要確認「{{ u.display_name }}」嗎？');">
+                <button type="submit" class="btn btn-sm btn-outline-success">確認帳號</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0 p-3">目前沒有使用您的邀請碼註冊、且待確認的使用者。</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const selectAll = document.getElementById('select-all-invitees');
+  const boxes = document.querySelectorAll('.invitee-checkbox');
+  if (!selectAll || !boxes.length) return;
+  selectAll.addEventListener('change', function () {
+    boxes.forEach(function (box) { box.checked = selectAll.checked; });
+  });
+  boxes.forEach(function (box) {
+    box.addEventListener('change', function () {
+      selectAll.checked = Array.from(boxes).every(function (b) { return b.checked; });
+    });
+  });
+})();
+</script>
+{% endblock %}

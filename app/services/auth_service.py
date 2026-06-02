@@ -1,23 +1,19 @@
-from datetime import datetime, timedelta, timezone
-import random
+from datetime import datetime, timezone
 
+import bcrypt
 from bson import ObjectId
-from passlib.context import CryptContext
 
-from app.config import BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_PASSWORD, VERIFICATION_CODE_EXPIRE_MINUTES
+from app.config import BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_PASSWORD
 from app.database import get_db
 from app.schemas.user import UserOut
-from app.services.email_service import send_verification_email
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
 
 
 def _doc_to_user(doc: dict) -> UserOut:
@@ -58,7 +54,17 @@ def create_user(
     role: str = "user",
     *,
     email_verified: bool = False,
+    invite_code: str | None = None,
 ) -> UserOut:
+    invited_by = None
+    if invite_code:
+        from app.services.invite_code_service import resolve_invite_code_owner
+
+        owner_id = resolve_invite_code_owner(invite_code)
+        if not owner_id:
+            raise ValueError("邀請碼無效或已停用")
+        invited_by = ObjectId(owner_id)
+
     db = get_db()
     normalized_email = email.lower().strip()
     now = datetime.now(timezone.utc)
@@ -75,21 +81,28 @@ def create_user(
             "is_active": True,
             "email_verified": email_verified,
         }
+        unset_fields = {
+            "verification_code": "",
+            "verification_code_expires_at": "",
+            "blocked_users": "",
+        }
+        if invited_by:
+            updates["invited_by"] = invited_by
+        else:
+            unset_fields["invited_by"] = ""
         db.users.update_one(
             {"_id": existing["_id"]},
             {
                 "$set": updates,
-                "$unset": {
-                    "verification_code": "",
-                    "verification_code_expires_at": "",
-                    "blocked_users": "",
-                },
+                "$unset": unset_fields,
             },
         )
         existing.update(updates)
         existing.pop("verification_code", None)
         existing.pop("verification_code_expires_at", None)
         existing.pop("blocked_users", None)
+        if not invited_by:
+            existing.pop("invited_by", None)
         return _doc_to_user(existing)
 
     doc = {
@@ -101,59 +114,45 @@ def create_user(
         "is_active": True,
         "email_verified": email_verified,
     }
+    if invited_by:
+        doc["invited_by"] = invited_by
     result = db.users.insert_one(doc)
     doc["_id"] = result.inserted_id
     return _doc_to_user(doc)
 
 
-def _generate_verification_code() -> str:
-    return "".join(str(random.randint(0, 9)) for _ in range(6))
-
-
-def issue_verification_code(email: str) -> None:
-    db = get_db()
-    normalized_email = email.lower().strip()
-    code = _generate_verification_code()
-    expires_at = datetime.now(timezone.utc) + timedelta(minutes=VERIFICATION_CODE_EXPIRE_MINUTES)
-    result = db.users.update_one(
-        {"email": normalized_email, "email_verified": False},
-        {
-            "$set": {
-                "verification_code": code,
-                "verification_code_expires_at": expires_at,
-            }
-        },
-    )
-    if result.matched_count == 0:
-        raise ValueError("找不到待驗證的帳號")
-    send_verification_email(normalized_email, code)
-
-
-def verify_email_code(email: str, code: str) -> tuple[bool, str]:
-    db = get_db()
-    normalized_email = email.lower().strip()
-    normalized_code = code.strip()
-    doc = db.users.find_one({"email": normalized_email})
-    if not doc:
-        return False, "找不到此帳號"
-    if doc.get("email_verified", True):
-        return True, "此 Email 已驗證"
-    stored = doc.get("verification_code")
-    expires_at = doc.get("verification_code_expires_at")
-    if not stored or not expires_at:
-        return False, "驗證碼已失效，請重新寄送"
-    if datetime.now(timezone.utc) > expires_at:
-        return False, "驗證碼已過期，請重新寄送"
-    if normalized_code != stored:
-        return False, "驗證碼錯誤"
-    db.users.update_one(
-        {"_id": doc["_id"]},
-        {
-            "$set": {"email_verified": True},
-            "$unset": {"verification_code": "", "verification_code_expires_at": ""},
-        },
-    )
-    return True, "Email 驗證成功"
+# --- Email 驗證碼寄信流程已停用 ---
+# 備註：Email 驗證僅能由管理員於 /admin/users 代為確認（admin_verify_user_email）。
+# 若需恢復，請取消下方註解並還原 app/routers/auth.py 中的驗證路由。
+#
+# def _generate_verification_code() -> str:
+#     return "".join(str(random.randint(0, 9)) for _ in range(6))
+#
+#
+# def issue_verification_code(email: str) -> None:
+#     from app.config import VERIFICATION_CODE_EXPIRE_MINUTES
+#     from app.services.email_service import send_verification_email
+#
+#     db = get_db()
+#     normalized_email = email.lower().strip()
+#     code = _generate_verification_code()
+#     expires_at = datetime.now(timezone.utc) + timedelta(minutes=VERIFICATION_CODE_EXPIRE_MINUTES)
+#     result = db.users.update_one(
+#         {"email": normalized_email, "email_verified": False},
+#         {
+#             "$set": {
+#                 "verification_code": code,
+#                 "verification_code_expires_at": expires_at,
+#             }
+#         },
+#     )
+#     if result.matched_count == 0:
+#         raise ValueError("找不到待驗證的帳號")
+#     send_verification_email(normalized_email, code)
+#
+#
+# def verify_email_code(email: str, code: str) -> tuple[bool, str]:
+#     ...
 
 
 def admin_verify_user_email(user_id: str) -> tuple[bool, str]:
@@ -175,6 +174,13 @@ def admin_verify_user_email(user_id: str) -> tuple[bool, str]:
             return False, "此帳號已驗證"
         return False, "無法確認此帳號"
     return True, "已代為確認 Email"
+
+
+def get_login_verification_message(email: str) -> str:
+    doc = get_user_by_email(email)
+    if doc and not doc.get("email_verified", True) and doc.get("invited_by"):
+        return "帳號待確認。"
+    return "Email 尚未驗證，請填寫邀請碼重新註冊，或聯絡管理員於「使用者管理」頁面代為確認"
 
 
 def authenticate_user(email: str, password: str) -> UserOut | None:

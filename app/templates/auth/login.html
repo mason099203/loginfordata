@@ -6,17 +6,13 @@
     <div class="card shadow-sm">
       <div class="card-body">
         <h1 class="h4 mb-3">登入</h1>
-        {% if verified %}
-        <div class="alert alert-success">Email 驗證成功，請登入。</div>
-        {% endif %}
-        {% if registered %}
-        <div class="alert alert-success">註冊成功，請登入。</div>
+        {% if invited %}
+        <div class="alert alert-success">註冊成功，請等待發放邀請碼的高級使用者確認後再登入。</div>
+        {% elif registered %}
+        <div class="alert alert-success">註冊成功，請等待管理員確認 Email 後再登入。</div>
         {% endif %}
         {% if error %}
         <div class="alert alert-danger">{{ error }}</div>
-        {% if pending_email %}
-        <p class="mb-0"><a href="/register/verify?email={{ pending_email | urlencode }}">前往輸入驗證碼</a></p>
-        {% endif %}
         {% endif %}
         <form method="post" action="/login">
           <div class="mb-3">

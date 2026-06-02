@@ -18,11 +18,12 @@
         <ul class="navbar-nav me-auto">
           {% if user %}
           <li class="nav-item"><a class="nav-link" href="/">進行中活動</a></li>
-          <li class="nav-item"><a class="nav-link" href="/chat/global">全站聊天</a></li>
-          {% if user.role == 'advanced_user' %}
+          <li class="nav-item"><a class="nav-link" href="/chat/global">聊天室</a></li>
+          {% if user.role == 'advanced_user' or user.role == 'admin' %}
           <li class="nav-item"><a class="nav-link" href="/my/activities">我的活動</a></li>
           <li class="nav-item"><a class="nav-link" href="/my/templates">活動範本</a></li>
           <li class="nav-item"><a class="nav-link" href="/my/blacklist">黑名單</a></li>
+          <li class="nav-item"><a class="nav-link" href="/my/invite-code">邀請碼</a></li>
           <li class="nav-item"><a class="nav-link" href="/activities/create">建立活動</a></li>
           {% endif %}
           {% if user.role == 'admin' %}
@@ -36,12 +37,10 @@
           {% endif %}
           {% endif %}
         </ul>
-        <ul class="navbar-nav">
+        <ul class="navbar-nav ms-auto align-items-center">
           {% if user %}
           <li class="nav-item">
-            <span class="navbar-text me-3">{{ user.display_name }}
-              {% if user.role == 'admin' %}(管理員){% elif user.role == 'advanced_user' %}(高級使用者){% else %}(一般使用者){% endif %}
-            </span>
+            <span class="navbar-text me-3">{{ user.display_name }}</span>
           </li>
           <li class="nav-item"><a class="nav-link" href="/logout">登出</a></li>
           {% else %}

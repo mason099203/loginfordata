@@ -1,3 +1,6 @@
+# Email 驗證碼寄信服務（目前已停用）
+# 備註：Email 驗證僅能由管理員於 /admin/users 代為確認。
+# 若需恢復自動寄信，請取消 app/services/auth_service.py 與 app/routers/auth.py 中的相關註解。
 import json
 import logging
 import smtplib
@@ -7,6 +10,7 @@ from email.message import EmailMessage
 
 from app.config import (
     EMAIL_FROM,
+    IS_RENDER,
     RESEND_API_KEY,
     SMTP_FROM,
     SMTP_HOST,
@@ -83,6 +87,11 @@ def send_verification_email(to_email: str, code: str) -> None:
         _send_via_resend(to_email, subject, body)
         logger.info("驗證信已透過 Resend 寄出: %s", to_email)
         return
+
+    if IS_RENDER:
+        raise RuntimeError(
+            "Render 不支援 SMTP 寄信，請在 Environment 設定 RESEND_API_KEY 與 EMAIL_FROM"
+        )
 
     if SMTP_USER and SMTP_PASSWORD:
         _send_via_smtp(to_email, subject, body)
