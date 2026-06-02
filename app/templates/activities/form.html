@@ -40,7 +40,9 @@
       <div class="form-text">請貼上網路上的圖片連結（http:// 或 https://）</div>
       {% set preview_url = activity.image_url if activity and activity.image_url else (template_data.image_url if template_data and template_data.image_url else (form.image_url if form and form.image_url else '')) %}
       {% if preview_url %}
-      <div class="mt-2"><img src="{{ preview_url }}" alt="預覽" class="img-thumbnail" style="max-height:160px;" onerror="this.style.display='none'"></div>
+      <div class="mt-2 activity-image-wrap d-inline-block">
+        <img src="{{ preview_url }}" alt="預覽" class="img-thumbnail activity-image activity-image-preview" onerror="this.style.display='none'">
+      </div>
       {% endif %}
     </div>
     {% if mode == 'edit' and activity.status != 'draft' %}

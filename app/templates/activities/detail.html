@@ -8,7 +8,9 @@
   <div class="{% if can_chat %}col-lg-8{% else %}col-12{% endif %}">
     <div class="card shadow-sm mb-4">
       {% if activity.image_url %}
-      <img src="{{ activity.image_url }}" class="card-img-top" alt="{{ activity.title }}" style="max-height:320px;object-fit:cover;">
+      <div class="activity-image-wrap">
+        <img src="{{ activity.image_url }}" class="card-img-top activity-image" alt="{{ activity.title }}">
+      </div>
       {% endif %}
       <div class="card-body">
         <h1 class="h3">{{ activity.title }}</h1>
