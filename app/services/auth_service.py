@@ -61,10 +61,37 @@ def create_user(
 ) -> UserOut:
     db = get_db()
     normalized_email = email.lower().strip()
-    if db.users.find_one({"email": normalized_email}):
-        raise ValueError("此 Email 已被註冊")
-
     now = datetime.now(timezone.utc)
+    existing = db.users.find_one({"email": normalized_email})
+    if existing:
+        if existing.get("is_active", True):
+            raise ValueError("此 Email 已被註冊")
+        password_hash = hash_password(password)
+        updates = {
+            "password_hash": password_hash,
+            "display_name": display_name.strip(),
+            "role": role,
+            "created_at": now,
+            "is_active": True,
+            "email_verified": email_verified,
+        }
+        db.users.update_one(
+            {"_id": existing["_id"]},
+            {
+                "$set": updates,
+                "$unset": {
+                    "verification_code": "",
+                    "verification_code_expires_at": "",
+                    "blocked_users": "",
+                },
+            },
+        )
+        existing.update(updates)
+        existing.pop("verification_code", None)
+        existing.pop("verification_code_expires_at", None)
+        existing.pop("blocked_users", None)
+        return _doc_to_user(existing)
+
     doc = {
         "email": normalized_email,
         "password_hash": hash_password(password),

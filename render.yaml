@@ -25,3 +25,8 @@ services:
         value: 2
       - key: APP_TIMEZONE
         value: Asia/Taipei
+      # Render 免費方案封鎖 SMTP 587/465，請用 Resend HTTP API 寄信
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false

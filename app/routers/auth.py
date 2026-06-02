@@ -1,5 +1,7 @@
 from urllib.parse import quote
 
+import logging
+
 from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -15,6 +17,7 @@ from app.services.auth_service import (
 
 router = APIRouter(tags=["auth"])
 templates = Jinja2Templates(directory="app/templates")
+logger = logging.getLogger(__name__)
 
 
 @router.get("/register", response_class=HTMLResponse)
@@ -46,6 +49,7 @@ async def register_submit(
             status_code=400,
         )
     except Exception:
+        logger.exception("驗證信寄送失敗: %s", email)
         return templates.TemplateResponse(
             request,
             "auth/register.html",
@@ -102,6 +106,7 @@ async def resend_verification(
             status_code=400,
         )
     except Exception:
+        logger.exception("驗證信寄送失敗: %s", email)
         return templates.TemplateResponse(
             request,
             "auth/verify_email.html",

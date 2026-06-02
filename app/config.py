@@ -55,6 +55,8 @@ SMTP_FROM = os.getenv("SMTP_FROM", "") or (
     f"活動管理系統 <{SMTP_USER}>" if SMTP_USER else "活動管理系統 <noreply@example.com>"
 )
 SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").lower() in ("1", "true", "yes")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+EMAIL_FROM = os.getenv("EMAIL_FROM", "") or SMTP_FROM
 VERIFICATION_CODE_EXPIRE_MINUTES = int(os.getenv("VERIFICATION_CODE_EXPIRE_MINUTES", "15"))
 
 ROLES = ("user", "advanced_user", "admin")

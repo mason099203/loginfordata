@@ -48,7 +48,9 @@ python -m venv .venv
 
 ## Email 驗證
 
-註冊後系統會寄出 6 位數驗證碼，使用者須在 `/register/verify` 輸入後才能登入。若未設定 `SMTP_USER` / `SMTP_PASSWORD`，驗證碼會寫入伺服器 log（僅供本機開發）。
+註冊後系統會寄出 6 位數驗證碼，使用者須在 `/register/verify` 輸入後才能登入。若未設定任何寄信方式，驗證碼會寫入伺服器 log（僅供本機開發）。
+
+### 本機開發（Gmail SMTP）
 
 | 環境變數 | 說明 |
 |---------|------|
@@ -57,6 +59,24 @@ python -m venv .venv
 | `SMTP_USER` | Gmail 完整信箱 |
 | `SMTP_PASSWORD` | Gmail [應用程式密碼](https://myaccount.google.com/apppasswords)（16 碼，可含空格） |
 | `SMTP_FROM` | 寄件者顯示名稱（建議與 `SMTP_USER` 相同信箱） |
+
+### Render 部署（Resend API，免費方案必用）
+
+Render **免費方案**自 2025 年 9 月起封鎖 SMTP 埠 25/465/587，Gmail SMTP 無法連線。請改用 [Resend](https://resend.com) 的 HTTPS API（走 443 埠，不受限制）：
+
+1. 至 [Resend](https://resend.com) 註冊並建立 API Key
+2. 在 Resend 驗證寄件網域，或測試階段使用 `onboarding@resend.dev`
+3. 在 Render Dashboard → Environment 設定：
+
+| 環境變數 | 說明 |
+|---------|------|
+| `RESEND_API_KEY` | Resend API Key（`re_...`） |
+| `EMAIL_FROM` | 寄件者，例如 `活動管理系統 <onboarding@resend.dev>` |
+
+> 若設定了 `RESEND_API_KEY`，系統優先使用 Resend，不再走 SMTP。
+
+| 環境變數 | 說明 |
+|---------|------|
 | `VERIFICATION_CODE_EXPIRE_MINUTES` | 驗證碼有效分鐘數（預設 15） |
 
 ## 部署到 Render
@@ -78,6 +98,7 @@ python -m venv .venv
 - `MONGODB_DB_NAME` — `activity_app`
 - `SECRET_KEY` — 隨機長字串
 - `BOOTSTRAP_ADMIN_EMAIL` / `BOOTSTRAP_ADMIN_PASSWORD` — 首位管理員
+- `RESEND_API_KEY` / `EMAIL_FROM` — 驗證信寄送（Render 免費方案必設，見上方 Email 驗證）
 
 也可直接使用本 repo 的 [`render.yaml`](render.yaml) 建立服務。
 
