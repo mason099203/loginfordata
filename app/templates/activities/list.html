@@ -2,6 +2,27 @@
 {% block title %}進行中活動{% endblock %}
 {% block content %}
 <h1 class="h3 mb-4">進行中活動</h1>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body py-3">
+    <p class="small text-muted mb-2">持有非公開活動代碼？輸入代碼即可進入，或直接開啟主辦方分享的連結。</p>
+    <form method="post" action="/join" class="row g-2 align-items-end">
+      <div class="col-sm-8">
+        <label class="form-label small mb-1">活動代碼</label>
+        <input type="text" name="access_code" class="form-control form-control-sm text-uppercase"
+          placeholder="例如：AB12CD34" required maxlength="20" autocomplete="off">
+      </div>
+      <div class="col-sm-4">
+        <button type="submit" class="btn btn-sm btn-outline-primary w-100">進入活動</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% if flash %}
+<div class="alert alert-info">{{ flash }}</div>
+{% endif %}
+
 {% if activities %}
 <div class="row g-4">
   {% for activity in activities %}
@@ -46,6 +67,6 @@
   {% endfor %}
 </div>
 {% else %}
-<div class="alert alert-secondary">目前沒有進行中的活動。</div>
+<div class="alert alert-secondary">目前沒有進行中的公開活動。</div>
 {% endif %}
 {% endblock %}

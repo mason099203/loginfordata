@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ activity.title }}{% endblock %}
 {% block content %}
+{% if flash %}
+<div class="alert alert-info">{{ flash }}</div>
+{% endif %}
 {% if activity.deleted_at %}
 <div class="alert alert-warning">此活動已由主辦方刪除（{{ activity.deleted_at.strftime('%Y-%m-%d %H:%M') }}），僅管理員可檢視。</div>
 {% endif %}
@@ -20,6 +23,9 @@
           <span class="badge bg-success">進行中</span>
           {% else %}
           <span class="badge bg-secondary">{{ activity.status }}</span>
+          {% endif %}
+          {% if activity.visibility == 'private' %}
+          <span class="badge bg-warning text-dark">非公開</span>
           {% endif %}
         </p>
         {% if activity.is_live %}

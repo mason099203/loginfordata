@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 
 ActivityStatus = Literal["draft", "active", "closed"]
+ActivityVisibility = Literal["public", "private"]
 
 ACTIVATE_DURATION_OPTIONS = (1, 2, 3, 6, 12, 24)
 
@@ -42,6 +43,8 @@ class ActivityOut(BaseModel):
     remaining_text: str = ""
     remaining_seconds: int = 0
     deleted_at: datetime | None = None
+    visibility: ActivityVisibility = "public"
+    access_code: str | None = None
 
 
 class PositionInput(BaseModel):

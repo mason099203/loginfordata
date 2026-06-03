@@ -33,3 +33,14 @@ def ensure_indexes():
     )
     db.activity_templates.create_index([("created_by", ASCENDING), ("updated_at", DESCENDING)])
     db.registration_logs.create_index([("activity_id", ASCENDING), ("created_at", DESCENDING)])
+    db.activities.update_many({"access_code": None}, {"$unset": {"access_code": ""}})
+    for index_name in ("access_code_1", "access_code"):
+        try:
+            db.activities.drop_index(index_name)
+        except Exception:
+            pass
+    db.activities.create_index(
+        "access_code",
+        unique=True,
+        partialFilterExpression={"access_code": {"$exists": True, "$type": "string"}},
+    )

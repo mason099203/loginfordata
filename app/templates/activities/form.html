@@ -5,6 +5,9 @@
 {% if error %}
 <div class="alert alert-danger">{{ error }}</div>
 {% endif %}
+{% if flash %}
+<div class="alert alert-info">{{ flash }}</div>
+{% endif %}
 
 {% if mode == 'create' and templates %}
 <div class="card mb-4">
@@ -59,6 +62,45 @@
     {% elif mode == 'edit' %}
     <div class="col-12">
       <p class="text-muted small mb-0">草稿狀態：啟動活動時可設定開始時間（預設為現在）與時長。</p>
+    </div>
+    {% endif %}
+    {% if mode == 'edit' %}
+    <div class="col-12">
+      <label class="form-label">活動可見性</label>
+      <div class="d-flex gap-3 flex-wrap">
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="visibility" id="vis-public" value="public"
+            {% if activity.visibility != 'private' %}checked{% endif %}>
+          <label class="form-check-label" for="vis-public">公開 — 顯示於進行中活動列表</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="visibility" id="vis-private" value="private"
+            {% if activity.visibility == 'private' %}checked{% endif %}>
+          <label class="form-check-label" for="vis-private">非公開 — 需代碼或分享連結進入</label>
+        </div>
+      </div>
+      {% if activity.visibility == 'private' and activity.access_code %}
+      <div class="card mt-3 border-warning">
+        <div class="card-body py-3">
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <span class="small text-muted">活動代碼：</span>
+            <code class="fs-5 user-select-all">{{ activity.access_code }}</code>
+          </div>
+          <div class="small text-muted mb-2">分享連結（可直接進入）：</div>
+          <div class="input-group input-group-sm">
+            <input type="text" class="form-control font-monospace" id="share-url" readonly
+              value="{{ request.url.scheme }}://{{ request.url.netloc }}/join/{{ activity.access_code }}">
+            <button type="button" class="btn btn-outline-secondary" id="copy-share-url">複製</button>
+          </div>
+          <form method="post" action="/activities/{{ activity.id }}/regenerate-code" class="mt-3"
+            onsubmit="return confirm('重設代碼後舊連結將失效，確定繼續？');">
+            <button type="submit" class="btn btn-sm btn-outline-warning">重設代碼</button>
+          </form>
+        </div>
+      </div>
+      {% elif activity.visibility == 'private' %}
+      <p class="small text-muted mt-2 mb-0">儲存後將自動產生活動代碼。</p>
+      {% endif %}
     </div>
     {% endif %}
   </div>
@@ -223,6 +265,12 @@
 {% block scripts %}
 {% if mode == 'edit' %}
 <script>
+document.getElementById('copy-share-url')?.addEventListener('click', () => {
+  const input = document.getElementById('share-url');
+  if (!input) return;
+  input.select();
+  navigator.clipboard?.writeText(input.value).catch(() => document.execCommand('copy'));
+});
 document.getElementById('add-position')?.addEventListener('click', () => {
   const list = document.getElementById('positions-list');
   const row = document.createElement('div');

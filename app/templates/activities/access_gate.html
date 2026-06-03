@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}非公開活動{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h1 class="h4 mb-2">非公開活動</h1>
+        <p class="text-muted small mb-4">請輸入主辦方提供的活動代碼，或使用含代碼的分享連結。</p>
+
+        {% if flash %}
+        <div class="alert alert-info">{{ flash }}</div>
+        {% endif %}
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+
+        <form method="post" action="/join">
+          {% if redirect_to %}
+          <input type="hidden" name="redirect_to" value="{{ redirect_to }}">
+          {% endif %}
+          <div class="mb-3">
+            <label class="form-label" for="access_code">活動代碼</label>
+            <input type="text" id="access_code" name="access_code" class="form-control text-uppercase"
+              placeholder="例如：AB12CD34" required autocomplete="off" maxlength="20"
+              pattern="[A-Za-z0-9]{4,20}">
+            <div class="form-text">4～20 字英數字，不分大小寫</div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">進入活動</button>
+        </form>
+
+        <div class="mt-4 pt-3 border-top">
+          <p class="small text-muted mb-0">
+            若主辦方已分享連結，直接開啟該連結即可自動進入，無需手動輸入代碼。
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="text-center mt-3">
+      <a href="/" class="small text-muted">返回進行中活動</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

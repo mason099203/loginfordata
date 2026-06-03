@@ -7,6 +7,10 @@ from bson import ObjectId
 from app.config import APP_TIMEZONE, app_now, db_datetime_to_local, form_datetime_to_utc, utc_now
 from app.database import get_db
 from app.schemas.activity import ActivityOut, ParticipantOut, PositionOut
+from app.services.activity_access_service import (
+    generate_unique_access_code,
+    normalize_access_code,
+)
 from app.services.auth_service import get_user_by_id, get_users_by_ids
 from app.services.blacklist_service import is_user_blocked
 from app.services.registration_log_service import log_registration
@@ -86,7 +90,12 @@ def _collect_participant_ids(doc: dict) -> list[ObjectId]:
     return ids
 
 
-def _doc_to_activity(doc: dict, user_id: str | None = None) -> ActivityOut:
+def _doc_to_activity(
+    doc: dict,
+    user_id: str | None = None,
+    *,
+    include_access_code: bool = False,
+) -> ActivityOut:
     user_oid = ObjectId(user_id) if user_id and ObjectId.is_valid(user_id) else None
     user_names = get_users_by_ids(_collect_participant_ids(doc))
     positions = [_position_to_out(p, user_oid, user_names) for p in doc.get("positions", [])]
@@ -94,6 +103,8 @@ def _doc_to_activity(doc: dict, user_id: str | None = None) -> ActivityOut:
     total_participants = sum(p.participant_count for p in positions)
     remaining_text, remaining_seconds = _remaining_info(doc["end_time"])
     deleted_at_raw = doc.get("deleted_at")
+    visibility = doc.get("visibility", "public")
+    access_code = doc.get("access_code") if include_access_code else None
     return ActivityOut(
         id=str(doc["_id"]),
         title=doc["title"],
@@ -112,6 +123,8 @@ def _doc_to_activity(doc: dict, user_id: str | None = None) -> ActivityOut:
         remaining_text=remaining_text,
         remaining_seconds=remaining_seconds,
         deleted_at=db_datetime_to_local(deleted_at_raw) if deleted_at_raw else None,
+        visibility=visibility,
+        access_code=access_code,
     )
 
 
@@ -119,7 +132,13 @@ def list_active_activities(user_id: str | None = None) -> list[ActivityOut]:
     now = app_now()
     cursor = (
         get_db()
-        .activities.find({"status": "active", **_not_deleted_filter()})
+        .activities.find(
+            {
+                "status": "active",
+                "visibility": {"$ne": "private"},
+                **_not_deleted_filter(),
+            }
+        )
         .sort("start_time", 1)
     )
     results = []
@@ -134,6 +153,7 @@ def get_activity(
     user_id: str | None = None,
     *,
     include_deleted: bool = False,
+    include_access_code: bool = False,
 ) -> ActivityOut | None:
     if not ObjectId.is_valid(activity_id):
         return None
@@ -142,7 +162,10 @@ def get_activity(
         return None
     if not include_deleted and _is_deleted(doc):
         return None
-    return _doc_to_activity(doc, user_id)
+    show_code = include_access_code
+    if not show_code and user_id and str(doc.get("created_by")) == user_id:
+        show_code = True
+    return _doc_to_activity(doc, user_id, include_access_code=show_code)
 
 
 def list_my_activities(user_id: str) -> list[ActivityOut]:
@@ -195,6 +218,7 @@ def create_activity(
         "created_at": now,
         "updated_at": now,
         "deleted_at": None,
+        "visibility": "public",
     }
     result = get_db().activities.insert_one(doc)
     doc["_id"] = result.inserted_id
@@ -212,6 +236,7 @@ def update_activity(
     image_url: str | None = None,
     positions: list[dict[str, Any]] | None = None,
     set_image_url: bool = False,
+    visibility: str | None = None,
 ) -> ActivityOut | None:
     if not ObjectId.is_valid(activity_id):
         return None
@@ -253,7 +278,18 @@ def update_activity(
             )
         update["positions"] = new_positions
 
-    db.activities.update_one({"_id": doc["_id"]}, {"$set": update})
+    if visibility is not None:
+        if visibility not in ("public", "private"):
+            return None
+        update["visibility"] = visibility
+        if visibility == "private" and not doc.get("access_code"):
+            update["access_code"] = generate_unique_access_code()
+
+    update_op: dict[str, Any] = {"$set": update}
+    if visibility == "public":
+        update_op["$unset"] = {"access_code": ""}
+
+    db.activities.update_one({"_id": doc["_id"]}, update_op)
     updated = db.activities.find_one({"_id": doc["_id"]})
     return _doc_to_activity(updated, user_id)
 
@@ -429,3 +465,79 @@ def can_access_activity_chat(activity_id: str, user_id: str, user_role: str) -> 
     if str(doc["created_by"]) == user_id and user_role in ("advanced_user", "admin"):
         return True
     return user_joined_activity(activity_id, user_id)
+
+
+def _get_activity_doc(activity_id: str) -> dict | None:
+    if not ObjectId.is_valid(activity_id):
+        return None
+    return get_db().activities.find_one({"_id": ObjectId(activity_id)})
+
+
+def is_private_activity(doc: dict) -> bool:
+    return doc.get("visibility") == "private"
+
+
+def verify_activity_access_code(activity_id: str, code: str) -> bool:
+    doc = _get_activity_doc(activity_id)
+    if not doc or _is_deleted(doc):
+        return False
+    if not is_private_activity(doc):
+        return True
+    stored = doc.get("access_code")
+    if not stored:
+        return False
+    return normalize_access_code(code) == stored
+
+
+def find_activity_id_by_access_code(code: str) -> str | None:
+    normalized = normalize_access_code(code)
+    if not normalized:
+        return None
+    doc = get_db().activities.find_one(
+        {
+            "access_code": normalized,
+            "visibility": "private",
+            **_not_deleted_filter(),
+        }
+    )
+    return str(doc["_id"]) if doc else None
+
+
+def can_view_activity(
+    activity_id: str,
+    user_id: str,
+    user_role: str,
+    *,
+    has_access_cookie: bool = False,
+) -> bool:
+    doc = _get_activity_doc(activity_id)
+    if not doc or _is_deleted(doc):
+        return False
+    if not is_private_activity(doc):
+        return True
+    if user_role == "admin":
+        return True
+    if str(doc["created_by"]) == user_id:
+        return True
+    if user_joined_activity(activity_id, user_id):
+        return True
+    return has_access_cookie
+
+
+def regenerate_activity_access_code(activity_id: str, user_id: str) -> tuple[bool, str]:
+    if not ObjectId.is_valid(activity_id):
+        return False, "無效的活動"
+    db = get_db()
+    doc = db.activities.find_one(
+        {"_id": ObjectId(activity_id), "created_by": ObjectId(user_id), **_not_deleted_filter()}
+    )
+    if not doc:
+        return False, "無權操作此活動"
+    if not is_private_activity(doc):
+        return False, "僅非公開活動可重設代碼"
+    code = generate_unique_access_code()
+    db.activities.update_one(
+        {"_id": doc["_id"]},
+        {"$set": {"access_code": code, "updated_at": _now()}},
+    )
+    return True, code
